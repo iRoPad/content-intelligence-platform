@@ -1,8 +1,8 @@
 """Data quality tests on the modeled layer.
 
-Each test is a query returning the number of offending rows. Severity "error"
+Each test is a query returning the number of offending rows. Severity "blocking"
 fails the pipeline (bad data never reaches the models or the dashboard);
-"warn" is reported but tolerated.
+"warning" is reported but tolerated.
 """
 from __future__ import annotations
 
@@ -15,29 +15,29 @@ PLATFORMS = "('tiktok','instagram','youtube_shorts','youtube')"
 
 TESTS = [
     # (name, severity, failing-rows SQL)
-    ("stg_posts.post_id is unique", "error",
+    ("stg_posts.post_id is unique", "blocking",
      "SELECT COUNT(*) FROM (SELECT post_id FROM stg_posts GROUP BY post_id HAVING COUNT(*) > 1) x"),
-    ("stg_posts.platform in accepted values", "error",
+    ("stg_posts.platform in accepted values", "blocking",
      f"SELECT COUNT(*) FROM stg_posts WHERE platform NOT IN {PLATFORMS}"),
-    ("stg_posts.creator_tier in accepted values", "error",
+    ("stg_posts.creator_tier in accepted values", "blocking",
      "SELECT COUNT(*) FROM stg_posts WHERE creator_tier NOT IN ('none','micro','macro')"),
-    ("stg_posts.published_hour_local between 0 and 23", "error",
+    ("stg_posts.published_hour_local between 0 and 23", "blocking",
      "SELECT COUNT(*) FROM stg_posts WHERE published_hour_local NOT BETWEEN 0 AND 23"),
-    ("stg_post_metrics.views non-negative", "error",
+    ("stg_post_metrics.views non-negative", "blocking",
      "SELECT COUNT(*) FROM stg_post_metrics WHERE views < 0"),
-    ("stg_post_metrics engagement <= views", "error",
+    ("stg_post_metrics engagement <= views", "blocking",
      "SELECT COUNT(*) FROM stg_post_metrics WHERE likes + comments + shares + saves > views"),
-    ("every post has metrics", "error",
+    ("every post has metrics", "blocking",
      "SELECT COUNT(*) FROM stg_posts p LEFT JOIN stg_post_metrics m ON m.post_id = p.post_id WHERE m.post_id IS NULL"),
-    ("every post has AI tags", "error",
+    ("every post has AI tags", "blocking",
      "SELECT COUNT(*) FROM fct_post_performance WHERE theme IS NULL OR hook IS NULL OR tone IS NULL"),
-    ("fct rowcount matches stg_posts", "error",
+    ("fct rowcount matches stg_posts", "blocking",
      "SELECT ABS((SELECT COUNT(*) FROM fct_post_performance) - (SELECT COUNT(*) FROM stg_posts))"),
-    ("video posts missing duration", "warn",
+    ("video posts missing duration", "warning",
      "SELECT COUNT(*) FROM stg_posts WHERE is_duration_missing = 1"),
-    ("posts tracked < 14 days", "warn",
+    ("posts tracked < 14 days", "warning",
      "SELECT COUNT(*) FROM stg_post_metrics WHERE days_tracked < 13"),
-    ("mmm weeks with zero total spend", "warn",
+    ("mmm weeks with zero total spend", "warning",
      "SELECT COUNT(*) FROM mart_mmm_weekly WHERE tiktok_ads + meta_ads + youtube_ads + creator_partnerships + paid_search = 0"),
 ]
 
@@ -47,7 +47,7 @@ def run() -> list[dict]:
     with db.connect(read_only=True) as con:
         for name, severity, sql in TESTS:
             failing = int(con.execute(sql).fetchone()[0])
-            status = "pass" if failing == 0 else ("fail" if severity == "error" else "warn")
+            status = "pass" if failing == 0 else ("fail" if severity == "blocking" else "warn")
             results.append({"test": name, "severity": severity, "failing_rows": failing, "status": status})
     return results
 
