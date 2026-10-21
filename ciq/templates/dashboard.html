@@ -1,0 +1,500 @@
+<title>Content Intelligence Platform</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a single scrolling report, summary tiles first, then one section per pipeline layer
+   (content -> AI tagging -> model -> media mix -> data quality), each section a titled band. */
+:root {
+  --bg: #f6f6f3;
+  --surface: #fcfcfb;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --line: rgba(11,11,11,0.10);
+  --accent: #1c5cab;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
+  --good: #0ca30c; --good-ink: #006300; --warn: #fab219; --crit: #d03b3b;
+  --code-bg: #efeeea;
+  --f-display: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-body: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f0f0e; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --line: rgba(255,255,255,0.10); --accent: #86b6ef;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+    --good-ink: #0ca30c; --code-bg: #232321; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f0f0e; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --line: rgba(255,255,255,0.10); --accent: #86b6ef;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+  --good-ink: #0ca30c; --code-bg: #232321; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-block: 32px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header.top { display: grid; gap: 10px; padding-bottom: 24px; border-bottom: 1px solid var(--line); }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--f-display); font-weight: 700; font-size: clamp(30px, 5vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -0.02em; text-wrap: balance; }
+h2 { font-family: var(--f-display); font-weight: 700; font-size: 24px; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+h3 { font-size: 15px; font-weight: 600; margin: 0; }
+.lede { color: var(--ink-2); max-width: 68ch; margin: 0; }
+.flow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-family: var(--f-mono); font-size: 12px; color: var(--ink-2); }
+.flow span.step { border: 1px solid var(--line); background: var(--surface); padding: 3px 8px; border-radius: 4px; }
+.flow span.arrow { color: var(--muted); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-top: 24px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; display: grid; gap: 2px; align-content: start; }
+.tile .k { font-size: 12px; color: var(--muted); letter-spacing: .03em; text-transform: uppercase; }
+.tile .v { font-family: var(--f-display); font-size: 30px; font-weight: 700; line-height: 1.15; }
+.tile .d { font-size: 13px; color: var(--ink-2); }
+section { margin-top: 48px; display: grid; gap: 16px; }
+section > header { display: grid; gap: 6px; }
+section > header p { color: var(--ink-2); margin: 0; max-width: 72ch; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px; display: grid; gap: 10px; min-width: 0; align-content: start; }
+.card .sub { font-size: 13px; color: var(--muted); margin: 0; }
+.chart { width: 100%; min-height: 40px; position: relative; }
+.chart svg { display: block; overflow: visible; }
+.chart text { font-family: var(--f-body); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--ink-2); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.seg { display: flex; flex-wrap: wrap; gap: 4px; }
+.seg button { font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--ink-2); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { text-align: left; padding: 7px 10px 7px 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-weight: 600; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+tr.best td { font-weight: 600; }
+.pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); }
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.pill.pass { color: var(--good-ink); }
+.pill.warn { color: var(--ink-2); }
+.pill.warn::before { background: var(--warn); }
+.pill.fail { color: var(--crit); }
+.callout { border-left: 3px solid var(--accent); padding: 4px 0 4px 12px; color: var(--ink-2); font-size: 14px; }
+.callout b { color: var(--ink); }
+.qa { display: grid; gap: 8px; padding-block: 12px; border-bottom: 1px solid var(--line); }
+.qa:last-child { border-bottom: 0; }
+.qa .q { font-weight: 600; }
+.qa .q::before { content: "Q  "; font-family: var(--f-mono); color: var(--muted); }
+pre { margin: 0; background: var(--code-bg); border-radius: 6px; padding: 10px 12px; font-family: var(--f-mono); font-size: 12px; line-height: 1.5; overflow-x: auto; white-space: pre-wrap; word-break: break-word; color: var(--ink-2); }
+.qa .a { color: var(--ink-2); font-size: 14px; }
+.tip { position: fixed; pointer-events: none; z-index: 20; background: var(--ink); color: var(--surface); font-size: 12.5px; line-height: 1.4; padding: 7px 9px; border-radius: 6px; max-width: 240px; box-shadow: 0 4px 14px rgba(0,0,0,.18); }
+.tip b { font-weight: 600; }
+footer { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; display: grid; gap: 4px; }
+code { font-family: var(--f-mono); font-size: .9em; }
+@media (max-width: 520px) { .tile .v { font-size: 26px; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">Portfolio project · end-to-end analytics + AI</div>
+    <h1>Content Intelligence Platform</h1>
+    <p class="lede">What makes a social video break out, and where should the paid budget go? Raw platform exports become a tested SQL warehouse, an LLM tags every caption, a model scores breakout odds before posting, and a media mix model reallocates spend. Every number below is computed by the pipeline on <span id="period"></span>.</p>
+    <div class="flow" aria-label="Pipeline stages">
+      <span class="step">raw API exports</span><span class="arrow">→</span>
+      <span class="step">SQL warehouse</span><span class="arrow">→</span>
+      <span class="step">LLM tagging</span><span class="arrow">→</span>
+      <span class="step">data tests</span><span class="arrow">→</span>
+      <span class="step">breakout model</span><span class="arrow">→</span>
+      <span class="step">media mix model</span><span class="arrow">→</span>
+      <span class="step">AI analyst</span>
+    </div>
+    <div class="tiles" id="tiles"></div>
+  </header>
+
+  <section id="content">
+    <header>
+      <div class="eyebrow">Layer 1 · Warehouse</div>
+      <h2>What the content is doing</h2>
+      <p>A breakout is a post that reaches <span class="bm"></span>× the average views of the previous 30 posts from the same brand on the same platform. Comparing against a trailing baseline keeps big accounts from dominating and avoids using future data.</p>
+    </header>
+    <div class="card">
+      <h3>Weekly views by platform</h3>
+      <div class="legend" id="lg-weekly"></div>
+      <div class="chart" id="ch-weekly"></div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3>Breakout rate by content theme</h3>
+        <div class="seg" id="seg-theme" role="group" aria-label="Platform"></div>
+        <div class="chart" id="ch-theme"></div>
+      </div>
+      <div class="card">
+        <h3>Breakout rate by hook, per platform</h3>
+        <p class="sub">Share of posts that broke out. Darker is higher.</p>
+        <div class="chart" id="ch-heat"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Breakout rate by posting hour (Pacific)</h3>
+      <p class="sub">Blue bars mark the 5–9pm window.</p>
+      <div class="chart" id="ch-hour"></div>
+    </div>
+  </section>
+
+  <section id="ai">
+    <header>
+      <div class="eyebrow">Layer 2 · AI tagging</div>
+      <h2>Turning captions into features</h2>
+      <p>Each caption is classified into a fixed taxonomy (theme, hook, tone) by an LLM with a strict JSON contract, cached by caption hash, with a keyword-rules fallback. Accuracy is measured against a labeled holdout so the LLM has to beat the cheap baseline to justify its cost.</p>
+    </header>
+    <div class="grid2">
+      <div class="card">
+        <h3>Tagger accuracy vs. labeled set</h3>
+        <p class="sub" id="tag-source"></p>
+        <div class="chart" id="ch-tagacc"></div>
+      </div>
+      <div class="card">
+        <h3>Do the AI tags help the model?</h3>
+        <p class="sub">Same model, same data, with and without the tag features.</p>
+        <div class="chart" id="ch-ablation"></div>
+        <div class="callout" id="ablation-note"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="model">
+    <header>
+      <div class="eyebrow">Layer 3 · Machine learning</div>
+      <h2>Predicting breakouts before posting</h2>
+      <p>Gradient boosting on pre-publish features only (tags, format, length, timing, creator collab), validated on the most recent weeks with a time-based split, the way it would be used in production.</p>
+    </header>
+    <div class="grid2">
+      <div class="card">
+        <h3>Holdout performance</h3>
+        <p class="sub" id="model-sub"></p>
+        <div class="tablewrap"><table id="tb-models"></table></div>
+        <div class="callout" id="lift-note"></div>
+      </div>
+      <div class="card">
+        <h3>What drives the prediction</h3>
+        <p class="sub">Permutation importance: drop in ROC-AUC when a feature is shuffled.</p>
+        <div class="chart" id="ch-imp"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="mmm">
+    <header>
+      <div class="eyebrow">Layer 4 · Marketing mix model</div>
+      <h2>Where the paid budget should go</h2>
+      <p>Weekly conversions are modeled as baseline + trend + seasonality + organic reach + each channel's spend with carryover (adstock) and diminishing returns (saturation). The data generator knows the true channel effects, so the estimates can be checked against them.</p>
+    </header>
+    <div class="card">
+      <h3>Conversions: actual vs. model</h3>
+      <div class="legend" id="lg-fit"></div>
+      <div class="chart" id="ch-fit"></div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3>Conversions per $1k spend, estimated vs. true</h3>
+        <div class="legend" id="lg-roi"></div>
+        <div class="chart" id="ch-roi"></div>
+      </div>
+      <div class="card">
+        <h3>Recommended weekly budget, same total</h3>
+        <div class="legend" id="lg-budget"></div>
+        <div class="chart" id="ch-budget"></div>
+        <div class="callout" id="budget-note"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="analyst">
+    <header>
+      <div class="eyebrow">Layer 5 · AI analyst</div>
+      <h2>Ask the warehouse a question</h2>
+      <p>Natural language becomes SQL, which passes guardrails (single read-only SELECT, allow-listed tables, enforced row limit) before it runs. These answers were generated by the pipeline from <code>python -m ciq ask "…"</code>.</p>
+    </header>
+    <div class="card" id="qa"></div>
+  </section>
+
+  <section id="dq">
+    <header>
+      <div class="eyebrow">Data quality</div>
+      <h2>Tests that gate every run</h2>
+      <p>Blocking tests stop the pipeline before bad data reaches a model or this page. Warnings are tracked. The raw exports include duplicate rows, inconsistent platform names and glitched metric snapshots on purpose, and staging fixes them.</p>
+    </header>
+    <div class="card"><div class="tablewrap"><table id="tb-dq"></table></div></div>
+  </section>
+
+  <footer>
+    <div>Synthetic data with planted effects so results can be validated. Built with Python, SQL (DuckDB or SQLite), scikit-learn, SciPy and the Anthropic API.</div>
+    <div id="built"></div>
+  </footer>
+</div>
+<div class="tip" id="tip" hidden></div>
+
+<script>
+const D = __DATA__;
+const NS = "http://www.w3.org/2000/svg";
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmtK = v => v >= 1e9 ? (v/1e9).toFixed(1)+"B" : v >= 1e6 ? (v/1e6).toFixed(1)+"M" : v >= 1e3 ? (v/1e3).toFixed(0)+"K" : String(Math.round(v));
+const pct = (v, d=1) => (v*100).toFixed(d) + "%";
+const SERIES = ["--s1","--s2","--s3","--s4"];
+const PLAT_LABEL = {tiktok:"TikTok", instagram:"Instagram", youtube_shorts:"YT Shorts", youtube:"YouTube"};
+const nice = s => s.replace(/_/g, " ");
+
+function el(tag, attrs={}, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function svgFor(host, h) {
+  host.innerHTML = "";
+  const w = Math.max(280, host.clientWidth);
+  const s = el("svg", {width: w, height: h, viewBox: `0 0 ${w} ${h}`, role: "img"}, host);
+  return [s, w];
+}
+function txt(parent, x, y, s, o={}) {
+  const t = el("text", {x, y, fill: o.fill || css("--muted"), "font-size": o.size || 12, "text-anchor": o.anchor || "start",
+    "dominant-baseline": o.base || "middle", "font-weight": o.weight || 400}, parent);
+  t.textContent = s; return t;
+}
+function ticks(max, n=4) {
+  const raw = max / n, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1,2,2.5,5,10].map(m => m*mag).find(s => s >= raw);
+  const out = []; for (let v = 0; v <= max + 1e-9; v += step) out.push(v);
+  if (out[out.length-1] < max) out.push(out[out.length-1] + step);
+  return out;
+}
+function legend(id, items) {
+  document.getElementById(id).innerHTML = items.map(([n, c]) => `<span><i style="background:${css(c)}"></i>${n}</span>`).join("");
+}
+
+// ---- tooltip
+const tip = document.getElementById("tip");
+document.addEventListener("pointermove", e => {
+  const t = e.target.closest && e.target.closest("[data-tip]");
+  if (!t) { tip.hidden = true; return; }
+  tip.innerHTML = t.getAttribute("data-tip"); tip.hidden = false;
+  const r = tip.getBoundingClientRect();
+  let x = e.clientX + 14, y = e.clientY + 14;
+  if (x + r.width > innerWidth - 8) x = e.clientX - r.width - 14;
+  if (y + r.height > innerHeight - 8) y = e.clientY - r.height - 14;
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+});
+document.addEventListener("pointerleave", () => tip.hidden = true);
+
+// ---- line chart with crosshair
+function lineChart(id, x, series, o={}) {
+  const host = document.getElementById(id), H = o.h || 260;
+  const [s, W] = svgFor(host, H);
+  const m = {l: 44, r: o.labelRight ? 78 : 12, t: 10, b: 26};
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const ymin = o.ymin || 0;
+  const ymax = Math.max(...series.flatMap(sr => sr.values));
+  const tk = ticks(ymax - ymin).map(v => v + ymin);
+  const top = tk[tk.length-1];
+  const X = i => m.l + i * iw / (x.length - 1), Y = v => m.t + ih - (v - ymin) / (top - ymin) * ih;
+  tk.forEach(v => { el("line", {x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), stroke: css(v === ymin ? "--axis" : "--grid"), "stroke-width": 1}, s);
+    txt(s, m.l - 6, Y(v), (o.yfmt || fmtK)(v), {anchor: "end"}); });
+  const every = Math.ceil(x.length / (iw / 80));
+  x.forEach((d, i) => { if (i % every === 0) txt(s, X(i), H - 8, o.xfmt ? o.xfmt(d) : d, {anchor: "middle"}); });
+  series.forEach(sr => {
+    el("path", {d: sr.values.map((v, i) => `${i ? "L" : "M"}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(""),
+      fill: "none", stroke: css(sr.color), "stroke-width": 2, "stroke-linejoin": "round", "stroke-dasharray": sr.dash || ""}, s);
+    if (o.labelRight) { const last = sr.values.length - 1;
+      txt(s, X(last) + 6, Y(sr.values[last]), sr.name, {fill: css("--ink-2"), size: 12}); }
+  });
+  if (o.labelRight) { // de-collide right labels
+    const labels = [...s.querySelectorAll("text")].slice(-series.length).sort((a, b) => a.getAttribute("y") - b.getAttribute("y"));
+    for (let i = 1; i < labels.length; i++) { const py = +labels[i-1].getAttribute("y"), cy = +labels[i].getAttribute("y");
+      if (cy - py < 14) labels[i].setAttribute("y", py + 14); }
+  }
+  const guide = el("line", {y1: m.t, y2: m.t + ih, stroke: css("--axis"), "stroke-width": 1, visibility: "hidden"}, s);
+  const dots = series.map(sr => el("circle", {r: 4, fill: css(sr.color), stroke: css("--surface"), "stroke-width": 2, visibility: "hidden"}, s));
+  const step = iw / (x.length - 1);
+  x.forEach((d, i) => {
+    const r = el("rect", {x: X(i) - step/2, y: m.t, width: step, height: ih, fill: "transparent"}, s);
+    r.setAttribute("data-tip", `<b>${o.xfmt ? o.xfmt(d) : d}</b><br>` + series.map(sr => `${sr.name}: ${(o.tipfmt || fmtK)(sr.values[i])}`).join("<br>"));
+    r.addEventListener("pointerenter", () => { guide.setAttribute("x1", X(i)); guide.setAttribute("x2", X(i)); guide.setAttribute("visibility", "visible");
+      dots.forEach((c, k) => { c.setAttribute("cx", X(i)); c.setAttribute("cy", Y(series[k].values[i])); c.setAttribute("visibility", "visible"); }); });
+  });
+  s.addEventListener("pointerleave", () => { guide.setAttribute("visibility", "hidden"); dots.forEach(c => c.setAttribute("visibility", "hidden")); });
+}
+
+// ---- horizontal bars (1 or 2 series)
+function hbar(id, rows, o={}) {
+  const host = document.getElementById(id), keys = o.keys || ["value"], colors = o.colors || ["--s1"];
+  const band = keys.length > 1 ? 34 : 26, H = rows.length * band + 26;
+  const [s, W] = svgFor(host, H);
+  const labelW = o.labelW || Math.min(150, W * 0.36), m = {l: labelW, r: 52, t: 4, b: 22};
+  const iw = W - m.l - m.r;
+  const max = o.max || Math.max(...rows.flatMap(r => keys.map(k => r[k])));
+  const tk = ticks(max, 4), top = tk[tk.length-1], X = v => m.l + v / top * iw;
+  tk.forEach(v => { el("line", {x1: X(v), x2: X(v), y1: m.t, y2: H - m.b, stroke: css(v ? "--grid" : "--axis")}, s);
+    txt(s, X(v), H - 8, (o.fmt || String)(v), {anchor: "middle"}); });
+  const bh = keys.length > 1 ? 12 : 14;
+  rows.forEach((r, i) => {
+    const y0 = m.t + i * band + (band - bh * keys.length - 2 * (keys.length - 1)) / 2;
+    txt(s, m.l - 8, y0 + (bh * keys.length) / 2 + (keys.length - 1), r.label, {anchor: "end", fill: css("--ink-2"), size: 12.5});
+    keys.forEach((k, j) => {
+      const y = y0 + j * (bh + 2), w = Math.max(1, X(r[k]) - m.l);
+      const g = el("g", {}, s);
+      el("path", {d: `M${m.l},${y} h${w - 3} a3,3 0 0 1 3,3 v${bh - 6} a3,3 0 0 1 -3,3 h${-(w - 3)} z`, fill: css(colors[j])}, g);
+      el("rect", {x: m.l, y: y - 2, width: iw, height: bh + 4, fill: "transparent"}, g);
+      g.setAttribute("data-tip", `<b>${r.label}</b><br>${o.names ? o.names[j] + ": " : ""}${(o.fmt || String)(r[k])}${r.n ? `<br>${r.n} posts` : ""}`);
+      if (o.valueLabels !== false) txt(s, X(r[k]) + 6, y + bh/2, (o.fmt || String)(r[k]), {fill: css("--ink-2"), size: 11.5});
+    });
+  });
+}
+
+// ---- vertical bars
+function vbar(id, labels, values, o={}) {
+  const host = document.getElementById(id), H = o.h || 200;
+  const [s, W] = svgFor(host, H);
+  const m = {l: 40, r: 8, t: 10, b: 26}, iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const tk = ticks(Math.max(...values)), top = tk[tk.length-1];
+  const bw = iw / labels.length, Y = v => m.t + ih - v / top * ih;
+  tk.forEach(v => { el("line", {x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), stroke: css(v ? "--grid" : "--axis")}, s);
+    txt(s, m.l - 6, Y(v), (o.fmt || String)(v), {anchor: "end"}); });
+  labels.forEach((l, i) => {
+    const x = m.l + i * bw + 1, w = Math.max(2, bw - 2), h = Math.max(0, Y(0) - Y(values[i]));
+    const hl = o.highlight && o.highlight(l);
+    const g = el("g", {}, s);
+    el("path", {d: h > 3 ? `M${x},${Y(0)} v${-(h - 3)} a3,3 0 0 1 3,-3 h${w - 6} a3,3 0 0 1 3,3 v${h - 3} z` : `M${x},${Y(0)} v${-h} h${w} v${h} z`,
+      fill: css(hl ? "--s1" : "--axis")}, g);
+    el("rect", {x: x - 1, y: m.t, width: bw, height: ih, fill: "transparent"}, g);
+    g.setAttribute("data-tip", o.tip ? o.tip(i) : `${l}: ${(o.fmt || String)(values[i])}`);
+    if (i % (bw < 22 ? 3 : 1) === 0) txt(s, x + w/2, H - 8, o.xfmt ? o.xfmt(l) : l, {anchor: "middle"});
+  });
+}
+
+// ---- heatmap (sequential blue)
+const RAMP = ["#cde2fb","#b7d3f6","#9ec5f4","#86b6ef","#6da7ec","#5598e7","#3987e5","#2a78d6","#256abf","#1c5cab","#184f95","#104281","#0d366b"];
+function heatmap(id, rowsL, colsL, M, o={}) {
+  const host = document.getElementById(id);
+  const cw0 = 84, ch = 40, H = rowsL.length * ch + 30;
+  const [s, W] = svgFor(host, H);
+  const lw = Math.min(96, W * 0.25), cw = (W - lw) / colsL.length;
+  const vals = M.flat().map(c => c.v), mn = Math.min(...vals), mx = Math.max(...vals);
+  colsL.forEach((c, j) => txt(s, lw + j * cw + cw/2, 12, c, {anchor: "middle", size: 12, fill: css("--ink-2")}));
+  rowsL.forEach((r, i) => {
+    txt(s, lw - 8, 26 + i * ch + ch/2, r, {anchor: "end", size: 12.5, fill: css("--ink-2")});
+    colsL.forEach((c, j) => {
+      const cell = M[i][j], t = (cell.v - mn) / (mx - mn || 1), k = Math.round(t * (RAMP.length - 1));
+      const g = el("g", {}, s);
+      el("rect", {x: lw + j * cw + 1, y: 26 + i * ch + 1, width: cw - 2, height: ch - 2, rx: 3, fill: RAMP[k]}, g);
+      txt(g, lw + j * cw + cw/2, 26 + i * ch + ch/2, pct(cell.v, 0), {anchor: "middle", size: 12.5, weight: 600, fill: k >= 6 ? "#ffffff" : "#0b0b0b"});
+      g.setAttribute("data-tip", `<b>${r} · ${c}</b><br>Breakout rate ${pct(cell.v)}<br>${cell.n} posts`);
+    });
+  });
+}
+
+// ---- static parts
+function renderStatic() {
+  const K = D.kpis;
+  document.getElementById("period").textContent = `${K.posts.toLocaleString()} posts from ${K.period_start} to ${K.period_end}`;
+  document.querySelectorAll(".bm").forEach(e => e.textContent = D.breakout_multiple);
+  const tiles = [
+    ["Posts analyzed", K.posts.toLocaleString(), `${K.brands} brands · 4 platforms`],
+    ["Total views", fmtK(K.views), `${pct(K.breakout_rate)} of posts broke out`],
+    ["Breakout model", "AUC " + D.model.models.gradient_boosting.roc_auc.toFixed(2), `${D.model.models.gradient_boosting.lift_top_decile}× lift in top decile`],
+    ["Media mix fit", "R² " + D.mmm.fit.r2.toFixed(2), `${pct(D.mmm.fit.holdout_mape)} error on held-out weeks`],
+    ["Budget shift", "+" + D.mmm.budget.lift_pct.toFixed(1) + "%", "paid conversions at the same spend"],
+  ];
+  document.getElementById("tiles").innerHTML = tiles.map(([k, v, d]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join("");
+
+  const M = D.model, mm = M.models;
+  const rows = [["Gradient boosting", mm.gradient_boosting], ["Logistic regression", mm.logistic_regression], ["Gradient boosting, no AI tags", mm.gradient_boosting_without_ai_tags]];
+  const best = Math.max(...rows.map(r => r[1].roc_auc));
+  document.getElementById("tb-models").innerHTML = `<thead><tr><th>Model</th><th class="num">ROC-AUC</th><th class="num">PR-AUC</th><th class="num">Top-10% lift</th></tr></thead><tbody>` +
+    rows.map(([n, r]) => `<tr class="${r.roc_auc === best ? "best" : ""}"><td>${n}</td><td class="num">${r.roc_auc.toFixed(3)}</td><td class="num">${r.pr_auc.toFixed(3)}</td><td class="num">${r.lift_top_decile.toFixed(1)}×</td></tr>`).join("") + "</tbody>";
+  document.getElementById("model-sub").textContent = `Trained on ${M.train_rows.toLocaleString()} posts, tested on ${M.test_rows.toLocaleString()} posts published from ${M.test_period_start}. Breakout base rate in test: ${pct(M.base_rate_test)}.`;
+  const g = mm.gradient_boosting;
+  document.getElementById("lift-note").innerHTML = `Posts the model ranks in its <b>top 10%</b> break out <b>${g.lift_top_decile}×</b> as often as average, a short list a programming team can prioritize.`;
+  const nt = mm.gradient_boosting_without_ai_tags;
+  document.getElementById("ablation-note").innerHTML = `Adding the AI tags moves ROC-AUC from <b>${nt.roc_auc.toFixed(3)}</b> to <b>${g.roc_auc.toFixed(3)}</b> and PR-AUC from <b>${nt.pr_auc.toFixed(3)}</b> to <b>${g.pr_auc.toFixed(3)}</b>.`;
+
+  const src = D.tagger.source_mix, total = Object.values(src).reduce((a, b) => a + b, 0);
+  document.getElementById("tag-source").textContent = "Tagged by: " + Object.entries(src).map(([k, v]) => `${nice(k)} ${pct(v / total, 0)}`).join(" · ") +
+    (src.rules ? ". Set an API key to run the LLM tagger." : "");
+
+  const B = D.mmm.budget, chs = Object.keys(B.current);
+  const up = chs.map(c => [c, B.recommended[c] - B.current[c]]).sort((a, b) => b[1] - a[1]);
+  document.getElementById("budget-note").innerHTML = `Move about <b>$${Math.round(up[0][1]).toLocaleString()}/week</b> into <b>${nice(up[0][0])}</b> and out of <b>${nice(up[up.length-1][0])}</b>. Expected: <b>+${B.lift_pct.toFixed(1)}%</b> paid-driven conversions with total spend unchanged at $${Math.round(B.weekly_total).toLocaleString()}/week.`;
+
+  document.getElementById("qa").innerHTML = D.analyst.map(x => `<div class="qa"><div class="q">${x.question}</div><pre>${x.sql}</pre><div class="a">${x.answer}</div></div>`).join("");
+
+  document.getElementById("tb-dq").innerHTML = `<thead><tr><th>Test</th><th>Severity</th><th class="num">Failing rows</th><th>Status</th></tr></thead><tbody>` +
+    D.dq.map(t => `<tr><td>${t.test}</td><td>${t.severity}</td><td class="num">${t.failing_rows.toLocaleString()}</td><td><span class="pill ${t.status}">${t.status}</span></td></tr>`).join("") + "</tbody>";
+  document.getElementById("built").textContent = `Generated ${D.generated_at} · warehouse engine: ${D.engine}`;
+}
+
+// ---- charts (re-rendered on resize/theme change)
+let themePlatform = "all";
+function renderCharts() {
+  const W = D.weekly;
+  const plats = Object.keys(W.series);
+  legend("lg-weekly", plats.map((p, i) => [PLAT_LABEL[p], SERIES[i]]));
+  lineChart("ch-weekly", W.weeks, plats.map((p, i) => ({name: PLAT_LABEL[p], values: W.series[p], color: SERIES[i]})),
+    {xfmt: d => d.slice(2, 7).replace("-", "/"), labelRight: document.getElementById("ch-weekly").clientWidth > 520});
+
+  const seg = document.getElementById("seg-theme");
+  if (!seg.children.length) {
+    seg.innerHTML = ["all", ...plats].map(p => `<button type="button" id="seg-${p}" data-p="${p}" aria-pressed="${p === themePlatform}">${p === "all" ? "All" : PLAT_LABEL[p]}</button>`).join("");
+    seg.addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; themePlatform = b.dataset.p;
+      [...seg.children].forEach(c => c.setAttribute("aria-pressed", c.dataset.p === themePlatform)); drawTheme(); });
+  }
+  drawTheme();
+
+  const H = D.hook_heat;
+  heatmap("ch-heat", H.hooks.map(nice), H.platforms.map(p => PLAT_LABEL[p]), H.matrix);
+
+  vbar("ch-hour", D.hours.map(h => h.hour), D.hours.map(h => h.rate), {fmt: v => pct(v, 0), highlight: h => h >= 17 && h <= 21,
+    xfmt: h => h === 0 ? "12a" : h < 12 ? h + "a" : h === 12 ? "12p" : (h - 12) + "p",
+    tip: i => `<b>${D.hours[i].hour}:00</b><br>Breakout rate ${pct(D.hours[i].rate)}<br>${D.hours[i].n} posts`});
+
+  const acc = D.tagger.accuracy;
+  hbar("ch-tagacc", ["theme", "hook", "tone"].map(k => ({label: k, value: acc[k]})), {max: 1, fmt: v => pct(v, 0), labelW: 64});
+
+  const mm = D.model.models;
+  hbar("ch-ablation", [{label: "ROC-AUC", a: mm.gradient_boosting_without_ai_tags.roc_auc, b: mm.gradient_boosting.roc_auc},
+                       {label: "PR-AUC", a: mm.gradient_boosting_without_ai_tags.pr_auc, b: mm.gradient_boosting.pr_auc}],
+    {keys: ["a", "b"], colors: ["--axis", "--s1"], names: ["Without tags", "With AI tags"], fmt: v => v.toFixed(2), labelW: 70, max: 1});
+
+  hbar("ch-imp", D.model.feature_importance.slice(0, 10).map(f => ({label: nice(f.feature), value: Math.max(0, f.importance)})),
+    {fmt: v => v.toFixed(3), labelW: 130});
+
+  const F = D.mmm.weekly;
+  legend("lg-fit", [["Actual", "--ink-2"], ["Model", "--s1"]]);
+  lineChart("ch-fit", F.map(r => r.week_start), [
+    {name: "Actual", values: F.map(r => r.actual), color: "--ink-2"},
+    {name: "Model", values: F.map(r => r.predicted), color: "--s1", dash: "5 3"}],
+    {xfmt: d => d.slice(2, 7).replace("-", "/"), ymin: Math.floor(Math.min(...F.map(r => r.actual)) / 500) * 500,
+     yfmt: v => v.toLocaleString(), tipfmt: v => Math.round(v).toLocaleString(), h: 240});
+
+  const C = D.mmm.channels;
+  legend("lg-roi", [["Model estimate", "--s1"], ["True value", "--axis"]]);
+  hbar("ch-roi", C.map(c => ({label: nice(c.channel), a: c.roi_per_1k, b: c.true_roi_per_1k ?? 0})),
+    {keys: ["a", "b"], colors: ["--s1", "--axis"], names: ["Estimated", "True"], fmt: v => v.toFixed(0), labelW: 130});
+
+  const B = D.mmm.budget;
+  legend("lg-budget", [["Current", "--axis"], ["Recommended", "--s1"]]);
+  hbar("ch-budget", Object.keys(B.current).map(c => ({label: nice(c), a: B.current[c], b: B.recommended[c]})),
+    {keys: ["a", "b"], colors: ["--axis", "--s1"], names: ["Current", "Recommended"], fmt: v => "$" + fmtK(v), labelW: 130});
+}
+function drawTheme() {
+  const rows = D.themes[themePlatform].slice().sort((a, b) => b.rate - a.rate);
+  hbar("ch-theme", rows.map(r => ({label: nice(r.theme), value: r.rate, n: r.n})), {fmt: v => pct(v, 0), labelW: 120});
+}
+
+renderStatic();
+renderCharts();
+let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(renderCharts, 150); });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", renderCharts);
+new MutationObserver(renderCharts).observe(document.documentElement, {attributes: true, attributeFilter: ["data-theme"]});
+</script>

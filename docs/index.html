@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Content Intelligence Platform</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a single scrolling report, summary tiles first, then one section per pipeline layer
+   (content -> AI tagging -> model -> media mix -> data quality), each section a titled band. */
+:root {
+  --bg: #f6f6f3;
+  --surface: #fcfcfb;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --line: rgba(11,11,11,0.10);
+  --accent: #1c5cab;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
+  --good: #0ca30c; --good-ink: #006300; --warn: #fab219; --crit: #d03b3b;
+  --code-bg: #efeeea;
+  --f-display: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-body: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f0f0e; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --line: rgba(255,255,255,0.10); --accent: #86b6ef;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+    --good-ink: #0ca30c; --code-bg: #232321; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f0f0e; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --line: rgba(255,255,255,0.10); --accent: #86b6ef;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+  --good-ink: #0ca30c; --code-bg: #232321; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-block: 32px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header.top { display: grid; gap: 10px; padding-bottom: 24px; border-bottom: 1px solid var(--line); }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--f-display); font-weight: 700; font-size: clamp(30px, 5vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -0.02em; text-wrap: balance; }
+h2 { font-family: var(--f-display); font-weight: 700; font-size: 24px; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+h3 { font-size: 15px; font-weight: 600; margin: 0; }
+.lede { color: var(--ink-2); max-width: 68ch; margin: 0; }
+.flow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-family: var(--f-mono); font-size: 12px; color: var(--ink-2); }
+.flow span.step { border: 1px solid var(--line); background: var(--surface); padding: 3px 8px; border-radius: 4px; }
+.flow span.arrow { color: var(--muted); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-top: 24px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; display: grid; gap: 2px; align-content: start; }
+.tile .k { font-size: 12px; color: var(--muted); letter-spacing: .03em; text-transform: uppercase; }
+.tile .v { font-family: var(--f-display); font-size: 30px; font-weight: 700; line-height: 1.15; }
+.tile .d { font-size: 13px; color: var(--ink-2); }
+section { margin-top: 48px; display: grid; gap: 16px; }
+section > header { display: grid; gap: 6px; }
+section > header p { color: var(--ink-2); margin: 0; max-width: 72ch; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px; display: grid; gap: 10px; min-width: 0; align-content: start; }
+.card .sub { font-size: 13px; color: var(--muted); margin: 0; }
+.chart { width: 100%; min-height: 40px; position: relative; }
+.chart svg { display: block; overflow: visible; }
+.chart text { font-family: var(--f-body); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--ink-2); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.seg { display: flex; flex-wrap: wrap; gap: 4px; }
+.seg button { font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--ink-2); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { text-align: left; padding: 7px 10px 7px 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-weight: 600; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+tr.best td { font-weight: 600; }
+.pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); }
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.pill.pass { color: var(--good-ink); }
+.pill.warn { color: var(--ink-2); }
+.pill.warn::before { background: var(--warn); }
+.pill.fail { color: var(--crit); }
+.callout { border-left: 3px solid var(--accent); padding: 4px 0 4px 12px; color: var(--ink-2); font-size: 14px; }
+.callout b { color: var(--ink); }
+.qa { display: grid; gap: 8px; padding-block: 12px; border-bottom: 1px solid var(--line); }
+.qa:last-child { border-bottom: 0; }
+.qa .q { font-weight: 600; }
+.qa .q::before { content: "Q  "; font-family: var(--f-mono); color: var(--muted); }
+pre { margin: 0; background: var(--code-bg); border-radius: 6px; padding: 10px 12px; font-family: var(--f-mono); font-size: 12px; line-height: 1.5; overflow-x: auto; white-space: pre-wrap; word-break: break-word; color: var(--ink-2); }
+.qa .a { color: var(--ink-2); font-size: 14px; }
+.tip { position: fixed; pointer-events: none; z-index: 20; background: var(--ink); color: var(--surface); font-size: 12.5px; line-height: 1.4; padding: 7px 9px; border-radius: 6px; max-width: 240px; box-shadow: 0 4px 14px rgba(0,0,0,.18); }
+.tip b { font-weight: 600; }
+footer { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; display: grid; gap: 4px; }
+code { font-family: var(--f-mono); font-size: .9em; }
+@media (max-width: 520px) { .tile .v { font-size: 26px; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">Portfolio project · end-to-end analytics + AI</div>
+    <h1>Content Intelligence Platform</h1>
+    <p class="lede">What makes a social video break out, and where should the paid budget go? Raw platform exports become a tested SQL warehouse, an LLM tags every caption, a model scores breakout odds before posting, and a media mix model reallocates spend. Every number below is computed by the pipeline on <span id="period"></span>.</p>
+    <div class="flow" aria-label="Pipeline stages">
+      <span class="step">raw API exports</span><span class="arrow">→</span>
+      <span class="step">SQL warehouse</span><span class="arrow">→</span>
+      <span class="step">LLM tagging</span><span class="arrow">→</span>
+      <span class="step">data tests</span><span class="arrow">→</span>
+      <span class="step">breakout model</span><span class="arrow">→</span>
+      <span class="step">media mix model</span><span class="arrow">→</span>
+      <span class="step">AI analyst</span>
+    </div>
+    <div class="tiles" id="tiles"></div>
+  </header>
+
+  <section id="content">
+    <header>
+      <div class="eyebrow">Layer 1 · Warehouse</div>
+      <h2>What the content is doing</h2>
+      <p>A breakout is a post that reaches <span class="bm"></span>× the average views of the previous 30 posts from the same brand on the same platform. Comparing against a trailing baseline keeps big accounts from dominating and avoids using future data.</p>
+    </header>
+    <div class="card">
+      <h3>Weekly views by platform</h3>
+      <div class="legend" id="lg-weekly"></div>
+      <div class="chart" id="ch-weekly"></div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3>Breakout rate by content theme</h3>
+        <div class="seg" id="seg-theme" role="group" aria-label="Platform"></div>
+        <div class="chart" id="ch-theme"></div>
+      </div>
+      <div class="card">
+        <h3>Breakout rate by hook, per platform</h3>
+        <p class="sub">Share of posts that broke out. Darker is higher.</p>
+        <div class="chart" id="ch-heat"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Breakout rate by posting hour (Pacific)</h3>
+      <p class="sub">Blue bars mark the 5–9pm window.</p>
+      <div class="chart" id="ch-hour"></div>
+    </div>
+  </section>
+
+  <section id="ai">
+    <header>
+      <div class="eyebrow">Layer 2 · AI tagging</div>
+      <h2>Turning captions into features</h2>
+      <p>Each caption is classified into a fixed taxonomy (theme, hook, tone) by an LLM with a strict JSON contract, cached by caption hash, with a keyword-rules fallback. Accuracy is measured against a labeled holdout so the LLM has to beat the cheap baseline to justify its cost.</p>
+    </header>
+    <div class="grid2">
+      <div class="card">
+        <h3>Tagger accuracy vs. labeled set</h3>
+        <p class="sub" id="tag-source"></p>
+        <div class="chart" id="ch-tagacc"></div>
+      </div>
+      <div class="card">
+        <h3>Do the AI tags help the model?</h3>
+        <p class="sub">Same model, same data, with and without the tag features.</p>
+        <div class="chart" id="ch-ablation"></div>
+        <div class="callout" id="ablation-note"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="model">
+    <header>
+      <div class="eyebrow">Layer 3 · Machine learning</div>
+      <h2>Predicting breakouts before posting</h2>
+      <p>Gradient boosting on pre-publish features only (tags, format, length, timing, creator collab), validated on the most recent weeks with a time-based split, the way it would be used in production.</p>
+    </header>
+    <div class="grid2">
+      <div class="card">
+        <h3>Holdout performance</h3>
+        <p class="sub" id="model-sub"></p>
+        <div class="tablewrap"><table id="tb-models"></table></div>
+        <div class="callout" id="lift-note"></div>
+      </div>
+      <div class="card">
+        <h3>What drives the prediction</h3>
+        <p class="sub">Permutation importance: drop in ROC-AUC when a feature is shuffled.</p>
+        <div class="chart" id="ch-imp"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="mmm">
+    <header>
+      <div class="eyebrow">Layer 4 · Marketing mix model</div>
+      <h2>Where the paid budget should go</h2>
+      <p>Weekly conversions are modeled as baseline + trend + seasonality + organic reach + each channel's spend with carryover (adstock) and diminishing returns (saturation). The data generator knows the true channel effects, so the estimates can be checked against them.</p>
+    </header>
+    <div class="card">
+      <h3>Conversions: actual vs. model</h3>
+      <div class="legend" id="lg-fit"></div>
+      <div class="chart" id="ch-fit"></div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3>Conversions per $1k spend, estimated vs. true</h3>
+        <div class="legend" id="lg-roi"></div>
+        <div class="chart" id="ch-roi"></div>
+      </div>
+      <div class="card">
+        <h3>Recommended weekly budget, same total</h3>
+        <div class="legend" id="lg-budget"></div>
+        <div class="chart" id="ch-budget"></div>
+        <div class="callout" id="budget-note"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="analyst">
+    <header>
+      <div class="eyebrow">Layer 5 · AI analyst</div>
+      <h2>Ask the warehouse a question</h2>
+      <p>Natural language becomes SQL, which passes guardrails (single read-only SELECT, allow-listed tables, enforced row limit) before it runs. These answers were generated by the pipeline from <code>python -m ciq ask "…"</code>.</p>
+    </header>
+    <div class="card" id="qa"></div>
+  </section>
+
+  <section id="dq">
+    <header>
+      <div class="eyebrow">Data quality</div>
+      <h2>Tests that gate every run</h2>
+      <p>Blocking tests stop the pipeline before bad data reaches a model or this page. Warnings are tracked. The raw exports include duplicate rows, inconsistent platform names and glitched metric snapshots on purpose, and staging fixes them.</p>
+    </header>
+    <div class="card"><div class="tablewrap"><table id="tb-dq"></table></div></div>
+  </section>
+
+  <footer>
+    <div>Synthetic data with planted effects so results can be validated. Built with Python, SQL (DuckDB or SQLite), scikit-learn, SciPy and the Anthropic API.</div>
+    <div id="built"></div>
+  </footer>
+</div>
+<div class="tip" id="tip" hidden></div>
+
+<script>
+const D = {"generated_at":"2026-10-21 00:45 UTC","engine":"sqlite","breakout_multiple":2.0,"kpis":{"posts":5931,"views":169997072,"brands":6,"breakout_rate":0.074,"period_start":"2025-01-06","period_end":"2026-10-04"},"weekly":{"weeks":["2025-01-06","2025-01-13","2025-01-20","2025-01-27","2025-02-03","2025-02-10","2025-02-17","2025-02-24","2025-03-03","2025-03-10","2025-03-17","2025-03-24","2025-03-31","2025-04-07","2025-04-14","2025-04-21","2025-04-28","2025-05-05","2025-05-12","2025-05-19","2025-05-26","2025-06-02","2025-06-09","2025-06-16","2025-06-23","2025-06-30","2025-07-07","2025-07-14","2025-07-21","2025-07-28","2025-08-04","2025-08-11","2025-08-18","2025-08-25","2025-09-01","2025-09-08","2025-09-15","2025-09-22","2025-09-29","2025-10-06","2025-10-13","2025-10-20","2025-10-27","2025-11-03","2025-11-10","2025-11-17","2025-11-24","2025-12-01","2025-12-08","2025-12-15","2025-12-22","2025-12-29","2026-01-05","2026-01-12","2026-01-19","2026-01-26","2026-02-02","2026-02-09","2026-02-16","2026-02-23","2026-03-02","2026-03-09","2026-03-16","2026-03-23","2026-03-30","2026-04-06","2026-04-13","2026-04-20","2026-04-27","2026-05-04","2026-05-11","2026-05-18","2026-05-25","2026-06-01","2026-06-08","2026-06-15","2026-06-22","2026-06-29","2026-07-06","2026-07-13","2026-07-20","2026-07-27","2026-08-03","2026-08-10","2026-08-17","2026-08-24","2026-08-31","2026-09-07","2026-09-14","2026-09-21"],"series":{"tiktok":[848404,895848,1048779,754105,1080019,1059899,858943,636866,1058419,695920,506280,647458,1034162,788126,841074,1157143,590001,781416,957901,963319,1223016,1071094,1157909,510882,1151018,959205,963105,757994,797847,882420,761355,1613925,1096593,1044933,720611,785679,976772,873124,1172918,1259778,532747,1255531,817918,1184109,678462,1775290,1056225,1114035,787812,920761,885769,955745,882144,792218,834190,975475,1050817,1052446,822485,934436,1134801,1232509,1009894,1739282,997964,641229,904186,818324,810759,1045325,921482,1635792,945488,1240074,1047780,1766488,755778,1518411,711731,762953,806175,926589,612697,1158328,2224018,848476,1710368,1221388,1741651,1421155],"instagram":[430069,226387,627018,138391,435362,237097,426324,422374,321276,468675,266779,263286,265091,399175,323217,129289,308926,271539,181002,292228,315379,301854,324751,741758,636638,700015,277333,328087,200262,382058,351142,288277,560907,292359,312799,332140,349439,723160,178088,455322,511058,267869,345197,493309,413887,454444,351440,346070,156033,310996,226704,357737,340346,336929,338821,490000,661874,416857,617330,296921,268596,249571,461988,421496,337339,446566,326887,597083,276213,415159,616179,377949,472715,525050,702264,606135,441908,547731,406983,508454,388433,394187,198948,517997,434382,465603,631995,508923,460459,526448],"youtube_shorts":[316675,243162,122085,201100,215301,238071,257398,245787,215589,327130,173977,157931,270595,309929,162674,313990,324803,216360,358723,190295,579910,306876,302976,281306,184589,317611,279052,202753,431230,369056,203453,486260,289971,635298,332838,193911,197704,427521,310816,306659,498064,231676,541479,175048,344924,390605,160271,1603057,325395,276908,319934,238375,242702,452425,221898,247695,535910,284782,154177,389034,335678,345763,436360,346145,377916,188953,210996,190393,269490,587775,347964,278639,275440,340786,379252,176968,237806,299560,234071,538746,449543,430901,168058,727711,487643,291713,287947,154800,596355,288048],"youtube":[87120,91538,89183,61873,54987,83893,171005,112282,92827,159999,49450,111326,165443,128401,79883,82497,80348,88613,166394,35427,188077,133124,95453,153398,137585,226419,123502,52600,158660,337376,43373,197639,150921,161607,79367,155864,80086,129594,107801,100937,78625,67171,364062,77259,110283,72232,81211,188574,155631,89668,142662,81001,72275,134621,42648,187898,127601,134521,117418,207225,223492,161536,151081,193029,135896,215414,74672,120479,162472,337636,17736,158488,228102,68979,295766,97992,136179,139374,145770,138764,171704,64178,205518,133546,84625,441784,114615,153395,101635,161159]}},"themes":{"all":[{"theme":"behind_the_scenes","rate":0.0416,"n":553},{"theme":"challenge","rate":0.1218,"n":501},{"theme":"highlight","rate":0.0923,"n":2502},{"theme":"interview","rate":0.0263,"n":571},{"theme":"reaction","rate":0.0522,"n":498},{"theme":"trivia","rate":0.085,"n":553},{"theme":"tutorial","rate":0.0351,"n":513}],"tiktok":[{"theme":"behind_the_scenes","rate":0.0318,"n":220},{"theme":"challenge","rate":0.1978,"n":182},{"theme":"highlight","rate":0.0856,"n":970},{"theme":"interview","rate":0.0179,"n":224},{"theme":"reaction","rate":0.0728,"n":206},{"theme":"trivia","rate":0.1096,"n":228},{"theme":"tutorial","rate":0.0274,"n":219}],"instagram":[{"theme":"behind_the_scenes","rate":0.0592,"n":169},{"theme":"challenge","rate":0.0745,"n":161},{"theme":"highlight","rate":0.0889,"n":765},{"theme":"interview","rate":0.0341,"n":176},{"theme":"reaction","rate":0.0467,"n":150},{"theme":"trivia","rate":0.0724,"n":152},{"theme":"tutorial","rate":0.0438,"n":137}],"youtube_shorts":[{"theme":"behind_the_scenes","rate":0.03,"n":100},{"theme":"challenge","rate":0.0865,"n":104},{"theme":"highlight","rate":0.1161,"n":491},{"theme":"interview","rate":0.0185,"n":108},{"theme":"reaction","rate":0.0227,"n":88},{"theme":"trivia","rate":0.0796,"n":113},{"theme":"tutorial","rate":0.0101,"n":99}],"youtube":[{"theme":"behind_the_scenes","rate":0.0469,"n":64},{"theme":"challenge","rate":0.0741,"n":54},{"theme":"highlight","rate":0.0833,"n":276},{"theme":"interview","rate":0.0476,"n":63},{"theme":"reaction","rate":0.037,"n":54},{"theme":"trivia","rate":0.0333,"n":60},{"theme":"tutorial","rate":0.0862,"n":58}]},"hook_heat":{"hooks":["hot_take","countdown","question","story","none"],"platforms":["tiktok","instagram","youtube_shorts","youtube"],"matrix":[[{"v":0.1593,"n":339},{"v":0.1082,"n":268},{"v":0.0994,"n":161},{"v":0.08,"n":100}],[{"v":0.0866,"n":335},{"v":0.0644,"n":264},{"v":0.141,"n":156},{"v":0.0667,"n":90}],[{"v":0.0905,"n":475},{"v":0.0636,"n":346},{"v":0.0615,"n":244},{"v":0.0746,"n":134}],[{"v":0.0556,"n":342},{"v":0.1027,"n":263},{"v":0.0484,"n":186},{"v":0.0645,"n":93}],[{"v":0.0409,"n":758},{"v":0.0439,"n":569},{"v":0.059,"n":356},{"v":0.0566,"n":212}]]},"hours":[{"hour":0,"rate":0.0385,"n":52},{"hour":1,"rate":0.0,"n":20},{"hour":2,"rate":0.0714,"n":14},{"hour":3,"rate":0.0,"n":12},{"hour":4,"rate":0.0,"n":9},{"hour":5,"rate":0.0,"n":27},{"hour":6,"rate":0.0435,"n":69},{"hour":7,"rate":0.0561,"n":107},{"hour":8,"rate":0.0719,"n":153},{"hour":9,"rate":0.0681,"n":235},{"hour":10,"rate":0.0523,"n":287},{"hour":11,"rate":0.069,"n":290},{"hour":12,"rate":0.0548,"n":365},{"hour":13,"rate":0.0758,"n":330},{"hour":14,"rate":0.0643,"n":389},{"hour":15,"rate":0.0418,"n":359},{"hour":16,"rate":0.0454,"n":441},{"hour":17,"rate":0.0936,"n":513},{"hour":18,"rate":0.1269,"n":457},{"hour":19,"rate":0.1009,"n":466},{"hour":20,"rate":0.0914,"n":383},{"hour":21,"rate":0.0909,"n":352},{"hour":22,"rate":0.0669,"n":254},{"hour":23,"rate":0.0467,"n":107}],"tagger":{"accuracy":{"theme":0.7011,"hook":0.9929,"tone":0.7061,"n":5931},"source_mix":{"rules":5931}},"model":{"target":"views >= 2.0x trailing 30-post brand x platform average","train_rows":4657,"test_rows":1034,"test_period_start":"2026-06-15","base_rate_test":0.0696,"models":{"gradient_boosting":{"roc_auc":0.7097,"pr_auc":0.2041,"lift_top_decile":2.65},"logistic_regression":{"roc_auc":0.6877,"pr_auc":0.1846,"lift_top_decile":2.37},"gradient_boosting_without_ai_tags":{"roc_auc":0.6628,"pr_auc":0.1301,"lift_top_decile":1.95}},"feature_importance":[{"feature":"log_duration","importance":0.05},{"feature":"creator_tier","importance":0.0395},{"feature":"is_prime_time","importance":0.0357},{"feature":"theme","importance":0.035},{"feature":"tone","importance":0.0248},{"feature":"is_weekend","importance":0.0126},{"feature":"hour_sin","importance":0.0091},{"feature":"platform","importance":0.0081},{"feature":"hook","importance":0.0037},{"feature":"format","importance":0.0006},{"feature":"weeks_since_start","importance":0.0},{"feature":"is_duration_missing","importance":0.0},{"feature":"hour_cos","importance":-0.0005},{"feature":"brand","importance":-0.0157}]},"mmm":{"fit":{"r2":0.9385,"holdout_mape":0.0225,"holdout_weeks":13,"weeks":91},"channels":[{"channel":"tiktok_ads","total_spend":1019981.38,"contribution":30436.6,"share_of_paid_contribution":0.1729,"roi_per_1k":29.84,"marginal_roi_per_1k":14.88,"decay":0.3,"half_saturation":24018.0,"true_roi_per_1k":33.85,"true_decay":0.3},{"channel":"meta_ads","total_spend":1260882.35,"contribution":43371.7,"share_of_paid_contribution":0.2463,"roi_per_1k":34.4,"marginal_roi_per_1k":17.19,"decay":0.6,"half_saturation":17320.0,"true_roi_per_1k":26.18,"true_decay":0.5},{"channel":"youtube_ads","total_spend":935106.25,"contribution":34333.7,"share_of_paid_contribution":0.195,"roi_per_1k":36.72,"marginal_roi_per_1k":16.04,"decay":0.5,"half_saturation":10276.0,"true_roi_per_1k":30.11,"true_decay":0.6},{"channel":"creator_partnerships","total_spend":732899.79,"contribution":55351.3,"share_of_paid_contribution":0.3144,"roi_per_1k":75.52,"marginal_roi_per_1k":17.39,"decay":0.6,"half_saturation":10067.0,"true_roi_per_1k":84.39,"true_decay":0.7},{"channel":"paid_search","total_spend":460911.45,"contribution":12569.6,"share_of_paid_contribution":0.0714,"roi_per_1k":27.27,"marginal_roi_per_1k":7.77,"decay":0.1,"half_saturation":4221.0,"true_roi_per_1k":23.61,"true_decay":0.1}],"budget":{"weekly_total":51052.95,"current":{"tiktok_ads":15067.85,"meta_ads":10042.38,"youtube_ads":8261.66,"creator_partnerships":10280.7,"paid_search":7400.37},"recommended":{"tiktok_ads":14783.92,"meta_ads":11297.66,"youtube_ads":8880.83,"creator_partnerships":11640.35,"paid_search":4450.18},"paid_conversions_per_week_current":2121.6,"paid_conversions_per_week_recommended":2137.9,"lift_pct":0.77},"weekly":[{"week_start":"2025-01-06","actual":2629.0,"predicted":2662.9,"base":1549.8,"tiktok_ads":267.4,"meta_ads":386.2,"youtube_ads":0.0,"creator_partnerships":459.5,"paid_search":0.0},{"week_start":"2025-01-13","actual":3119.0,"predicted":3116.7,"base":1561.9,"tiktok_ads":271.6,"meta_ads":291.1,"youtube_ads":321.8,"creator_partnerships":525.9,"paid_search":144.3},{"week_start":"2025-01-20","actual":2745.0,"predicted":2755.3,"base":1573.8,"tiktok_ads":102.5,"meta_ads":206.5,"youtube_ads":219.5,"creator_partnerships":513.5,"paid_search":139.5},{"week_start":"2025-01-27","actual":3283.0,"predicted":3233.5,"base":1579.4,"tiktok_ads":231.6,"meta_ads":424.9,"youtube_ads":471.3,"creator_partnerships":500.9,"paid_search":25.4},{"week_start":"2025-02-03","actual":3124.0,"predicted":3100.2,"base":1586.8,"tiktok_ads":84.2,"meta_ads":450.2,"youtube_ads":467.4,"creator_partnerships":508.7,"paid_search":2.8},{"week_start":"2025-02-10","actual":3287.0,"predicted":3432.7,"base":1589.1,"tiktok_ads":203.7,"meta_ads":499.3,"youtube_ads":522.0,"creator_partnerships":478.2,"paid_search":140.3},{"week_start":"2025-02-17","actual":3620.0,"predicted":3648.0,"base":1589.7,"tiktok_ads":307.7,"meta_ads":537.4,"youtube_ads":493.0,"creator_partnerships":548.3,"paid_search":171.9},{"week_start":"2025-02-24","actual":3261.0,"predicted":3412.3,"base":1586.5,"tiktok_ads":320.5,"meta_ads":509.6,"youtube_ads":417.2,"creator_partnerships":428.3,"paid_search":150.2},{"week_start":"2025-03-03","actual":3600.0,"predicted":3522.7,"base":1582.8,"tiktok_ads":373.7,"meta_ads":558.3,"youtube_ads":406.0,"creator_partnerships":572.8,"paid_search":29.1},{"week_start":"2025-03-10","actual":3270.0,"predicted":3287.0,"base":1575.9,"tiktok_ads":156.1,"meta_ads":545.8,"youtube_ads":306.2,"creator_partnerships":552.1,"paid_search":151.0},{"week_start":"2025-03-17","actual":3446.0,"predicted":3452.8,"base":1564.7,"tiktok_ads":353.6,"meta_ads":460.3,"youtube_ads":340.8,"creator_partnerships":558.9,"paid_search":174.4},{"week_start":"2025-03-24","actual":3401.0,"predicted":3400.8,"base":1554.5,"tiktok_ads":363.4,"meta_ads":479.1,"youtube_ads":408.4,"creator_partnerships":555.7,"paid_search":39.8},{"week_start":"2025-03-31","actual":3876.0,"predicted":3717.4,"base":1543.7,"tiktok_ads":417.0,"meta_ads":553.7,"youtube_ads":398.7,"creator_partnerships":645.5,"paid_search":158.8},{"week_start":"2025-04-07","actual":3404.0,"predicted":3432.1,"base":1529.3,"tiktok_ads":182.5,"meta_ads":524.5,"youtube_ads":383.3,"creator_partnerships":649.4,"paid_search":163.1},{"week_start":"2025-04-14","actual":3677.0,"predicted":3662.6,"base":1513.4,"tiktok_ads":464.9,"meta_ads":542.9,"youtube_ads":435.6,"creator_partnerships":671.4,"paid_search":34.4},{"week_start":"2025-04-21","actual":3648.0,"predicted":3661.2,"base":1498.2,"tiktok_ads":451.8,"meta_ads":543.7,"youtube_ads":430.8,"creator_partnerships":562.6,"paid_search":174.0},{"week_start":"2025-04-28","actual":3770.0,"predicted":3752.9,"base":1480.3,"tiktok_ads":434.9,"meta_ads":574.8,"youtube_ads":399.5,"creator_partnerships":628.5,"paid_search":235.0},{"week_start":"2025-05-05","actual":3236.0,"predicted":3213.3,"base":1463.5,"tiktok_ads":194.2,"meta_ads":566.0,"youtube_ads":379.1,"creator_partnerships":513.6,"paid_search":96.9},{"week_start":"2025-05-12","actual":3173.0,"predicted":3164.1,"base":1447.5,"tiktok_ads":68.3,"meta_ads":596.0,"youtube_ads":276.5,"creator_partnerships":591.0,"paid_search":184.9},{"week_start":"2025-05-19","actual":3044.0,"predicted":3029.3,"base":1430.3,"tiktok_ads":21.6,"meta_ads":582.7,"youtube_ads":313.3,"creator_partnerships":635.7,"paid_search":45.7},{"week_start":"2025-05-26","actual":3214.0,"predicted":3261.9,"base":1417.0,"tiktok_ads":403.6,"meta_ads":590.0,"youtube_ads":324.3,"creator_partnerships":521.7,"paid_search":5.4},{"week_start":"2025-06-02","actual":2917.0,"predicted":2929.4,"base":1400.3,"tiktok_ads":174.1,"meta_ads":595.3,"youtube_ads":357.5,"creator_partnerships":401.7,"paid_search":0.5},{"week_start":"2025-06-09","actual":3604.0,"predicted":3583.4,"base":1386.6,"tiktok_ads":478.7,"meta_ads":592.1,"youtube_ads":363.7,"creator_partnerships":615.4,"paid_search":147.0},{"week_start":"2025-06-16","actual":3632.0,"predicted":3717.5,"base":1373.6,"tiktok_ads":611.9,"meta_ads":592.0,"youtube_ads":338.0,"creator_partnerships":623.2,"paid_search":178.7},{"week_start":"2025-06-23","actual":3372.0,"predicted":3368.2,"base":1364.3,"tiktok_ads":506.1,"meta_ads":558.9,"youtube_ads":320.7,"creator_partnerships":576.1,"paid_search":42.2},{"week_start":"2025-06-30","actual":3313.0,"predicted":3247.9,"base":1355.8,"tiktok_ads":508.5,"meta_ads":548.0,"youtube_ads":218.5,"creator_partnerships":612.2,"paid_search":4.9},{"week_start":"2025-07-07","actual":3377.0,"predicted":3368.6,"base":1347.3,"tiktok_ads":453.3,"meta_ads":540.8,"youtube_ads":332.4,"creator_partnerships":495.7,"paid_search":199.1},{"week_start":"2025-07-14","actual":3543.0,"predicted":3573.1,"base":1341.9,"tiktok_ads":509.7,"meta_ads":560.5,"youtube_ads":369.2,"creator_partnerships":625.5,"paid_search":166.1},{"week_start":"2025-07-21","actual":3603.0,"predicted":3621.1,"base":1340.8,"tiktok_ads":568.4,"meta_ads":477.9,"youtube_ads":360.5,"creator_partnerships":668.2,"paid_search":205.4},{"week_start":"2025-07-28","actual":3240.0,"predicted":3305.1,"base":1342.6,"tiktok_ads":298.6,"meta_ads":515.1,"youtube_ads":331.4,"creator_partnerships":669.4,"paid_search":148.0},{"week_start":"2025-08-04","actual":3580.0,"predicted":3426.2,"base":1343.7,"tiktok_ads":460.1,"meta_ads":516.0,"youtube_ads":357.2,"creator_partnerships":560.3,"paid_search":188.8},{"week_start":"2025-08-11","actual":3373.0,"predicted":3412.2,"base":1353.4,"tiktok_ads":383.5,"meta_ads":521.5,"youtube_ads":345.4,"creator_partnerships":612.7,"paid_search":195.7},{"week_start":"2025-08-18","actual":3085.0,"predicted":3045.2,"base":1360.0,"tiktok_ads":161.9,"meta_ads":432.0,"youtube_ads":440.6,"creator_partnerships":496.2,"paid_search":154.5},{"week_start":"2025-08-25","actual":3165.0,"predicted":3156.2,"base":1370.8,"tiktok_ads":55.3,"meta_ads":467.9,"youtube_ads":401.0,"creator_partnerships":674.4,"paid_search":186.8},{"week_start":"2025-09-01","actual":3277.0,"predicted":3416.7,"base":1381.6,"tiktok_ads":427.9,"meta_ads":467.1,"youtube_ads":425.4,"creator_partnerships":667.8,"paid_search":46.9},{"week_start":"2025-09-08","actual":3258.0,"predicted":3320.7,"base":1397.0,"tiktok_ads":383.8,"meta_ads":452.0,"youtube_ads":402.7,"creator_partnerships":679.6,"paid_search":5.5},{"week_start":"2025-09-15","actual":3348.0,"predicted":3312.7,"base":1414.9,"tiktok_ads":356.0,"meta_ads":442.7,"youtube_ads":397.9,"creator_partnerships":572.2,"paid_search":129.0},{"week_start":"2025-09-22","actual":3325.0,"predicted":3193.2,"base":1436.1,"tiktok_ads":146.0,"meta_ads":430.6,"youtube_ads":435.0,"creator_partnerships":591.7,"paid_search":153.8},{"week_start":"2025-09-29","actual":3374.0,"predicted":3333.1,"base":1455.9,"tiktok_ads":373.4,"meta_ads":334.5,"youtube_ads":340.4,"creator_partnerships":670.0,"paid_search":158.9},{"week_start":"2025-10-06","actual":3544.0,"predicted":3455.9,"base":1479.6,"tiktok_ads":323.0,"meta_ads":378.7,"youtube_ads":420.5,"creator_partnerships":686.0,"paid_search":168.3},{"week_start":"2025-10-13","actual":3361.0,"predicted":3387.9,"base":1501.6,"tiktok_ads":128.1,"meta_ads":440.9,"youtube_ads":408.5,"creator_partnerships":759.1,"paid_search":149.7},{"week_start":"2025-10-20","actual":3321.0,"predicted":3235.0,"base":1526.8,"tiktok_ads":42.6,"meta_ads":400.3,"youtube_ads":431.5,"creator_partnerships":670.9,"paid_search":163.0},{"week_start":"2025-10-27","actual":3488.0,"predicted":3370.4,"base":1552.8,"tiktok_ads":251.4,"meta_ads":402.0,"youtube_ads":450.0,"creator_partnerships":562.1,"paid_search":152.2},{"week_start":"2025-11-03","actual":3264.0,"predicted":3473.2,"base":1577.9,"tiktok_ads":266.9,"meta_ads":419.8,"youtube_ads":456.3,"creator_partnerships":607.1,"paid_search":145.2},{"week_start":"2025-11-10","actual":3484.0,"predicted":3488.8,"base":1602.0,"tiktok_ads":366.8,"meta_ads":439.4,"youtube_ads":367.2,"creator_partnerships":597.8,"paid_search":115.5},{"week_start":"2025-11-17","actual":3311.0,"predicted":3341.1,"base":1631.0,"tiktok_ads":329.6,"meta_ads":343.4,"youtube_ads":264.1,"creator_partnerships":655.5,"paid_search":117.5},{"week_start":"2025-11-24","actual":3087.0,"predicted":3200.8,"base":1652.0,"tiktok_ads":131.6,"meta_ads":251.8,"youtube_ads":389.1,"creator_partnerships":634.6,"paid_search":141.7},{"week_start":"2025-12-01","actual":3608.0,"predicted":3582.6,"base":1680.9,"tiktok_ads":310.1,"meta_ads":433.9,"youtube_ads":393.8,"creator_partnerships":609.2,"paid_search":154.8},{"week_start":"2025-12-08","actual":3826.0,"predicted":3717.1,"base":1697.2,"tiktok_ads":442.0,"meta_ads":337.8,"youtube_ads":432.9,"creator_partnerships":636.7,"paid_search":170.6},{"week_start":"2025-12-15","actual":3678.0,"predicted":3667.3,"base":1718.7,"tiktok_ads":319.9,"meta_ads":408.0,"youtube_ads":463.4,"creator_partnerships":597.9,"paid_search":159.3},{"week_start":"2025-12-22","actual":3704.0,"predicted":3728.0,"base":1737.8,"tiktok_ads":321.1,"meta_ads":456.9,"youtube_ads":446.9,"creator_partnerships":602.3,"paid_search":162.9},{"week_start":"2025-12-29","actual":3457.0,"predicted":3419.1,"base":1755.3,"tiktok_ads":127.2,"meta_ads":465.5,"youtube_ads":466.4,"creator_partnerships":570.4,"paid_search":34.3},{"week_start":"2026-01-05","actual":3658.0,"predicted":3614.0,"base":1770.1,"tiktok_ads":174.8,"meta_ads":511.4,"youtube_ads":457.7,"creator_partnerships":560.9,"paid_search":139.0},{"week_start":"2026-01-12","actual":3558.0,"predicted":3543.7,"base":1783.6,"tiktok_ads":60.4,"meta_ads":505.5,"youtube_ads":457.9,"creator_partnerships":563.2,"paid_search":173.2},{"week_start":"2026-01-19","actual":3583.0,"predicted":3680.9,"base":1793.1,"tiktok_ads":251.9,"meta_ads":413.9,"youtube_ads":465.7,"creator_partnerships":583.5,"paid_search":172.8},{"week_start":"2026-01-26","actual":3860.0,"predicted":3733.2,"base":1802.6,"tiktok_ads":358.4,"meta_ads":479.6,"youtube_ads":478.5,"creator_partnerships":575.1,"paid_search":39.0},{"week_start":"2026-02-02","actual":3514.0,"predicted":3556.8,"base":1809.5,"tiktok_ads":357.5,"meta_ads":480.4,"youtube_ads":448.9,"creator_partnerships":456.0,"paid_search":4.5},{"week_start":"2026-02-09","actual":3490.0,"predicted":3521.3,"base":1810.8,"tiktok_ads":350.1,"meta_ads":386.4,"youtube_ads":464.7,"creator_partnerships":339.0,"paid_search":170.3},{"week_start":"2026-02-16","actual":3793.0,"predicted":3711.1,"base":1810.5,"tiktok_ads":436.8,"meta_ads":411.8,"youtube_ads":469.7,"creator_partnerships":409.8,"paid_search":172.5},{"week_start":"2026-02-23","actual":3842.0,"predicted":3746.9,"base":1808.7,"tiktok_ads":357.4,"meta_ads":443.2,"youtube_ads":457.9,"creator_partnerships":540.4,"paid_search":139.4},{"week_start":"2026-03-02","actual":4019.0,"predicted":4002.4,"base":1804.5,"tiktok_ads":422.1,"meta_ads":532.3,"youtube_ads":369.2,"creator_partnerships":673.4,"paid_search":200.9},{"week_start":"2026-03-09","actual":3915.0,"predicted":3919.2,"base":1797.7,"tiktok_ads":419.4,"meta_ads":581.6,"youtube_ads":419.3,"creator_partnerships":644.2,"paid_search":57.0},{"week_start":"2026-03-16","actual":4006.0,"predicted":4044.8,"base":1789.0,"tiktok_ads":503.3,"meta_ads":503.9,"youtube_ads":432.7,"creator_partnerships":638.1,"paid_search":177.7},{"week_start":"2026-03-23","actual":3753.0,"predicted":3837.1,"base":1780.2,"tiktok_ads":431.1,"meta_ads":412.2,"youtube_ads":423.2,"creator_partnerships":594.6,"paid_search":195.9},{"week_start":"2026-03-30","actual":3911.0,"predicted":3915.7,"base":1764.9,"tiktok_ads":562.1,"meta_ads":491.1,"youtube_ads":326.1,"creator_partnerships":597.2,"paid_search":174.3},{"week_start":"2026-04-06","actual":3866.0,"predicted":3897.9,"base":1749.7,"tiktok_ads":458.7,"meta_ads":536.8,"youtube_ads":355.4,"creator_partnerships":627.9,"paid_search":169.5},{"week_start":"2026-04-13","actual":3682.0,"predicted":3724.7,"base":1734.5,"tiktok_ads":210.5,"meta_ads":561.7,"youtube_ads":401.9,"creator_partnerships":639.4,"paid_search":176.6},{"week_start":"2026-04-20","actual":3885.0,"predicted":3865.4,"base":1719.1,"tiktok_ads":353.5,"meta_ads":589.0,"youtube_ads":402.0,"creator_partnerships":618.6,"paid_search":183.1},{"week_start":"2026-04-27","actual":3836.0,"predicted":3803.0,"base":1701.8,"tiktok_ads":483.8,"meta_ads":513.2,"youtube_ads":301.6,"creator_partnerships":613.9,"paid_search":188.7},{"week_start":"2026-05-04","actual":3938.0,"predicted":3839.0,"base":1687.6,"tiktok_ads":440.7,"meta_ads":615.2,"youtube_ads":311.2,"creator_partnerships":621.6,"paid_search":162.7},{"week_start":"2026-05-11","actual":3991.0,"predicted":3969.4,"base":1669.1,"tiktok_ads":627.5,"meta_ads":618.0,"youtube_ads":278.6,"creator_partnerships":629.7,"paid_search":146.5},{"week_start":"2026-05-18","actual":3635.0,"predicted":3639.4,"base":1654.2,"tiktok_ads":357.6,"meta_ads":550.8,"youtube_ads":294.1,"creator_partnerships":622.7,"paid_search":160.0},{"week_start":"2026-05-25","actual":3359.0,"predicted":3447.2,"base":1636.5,"tiktok_ads":146.9,"meta_ads":466.3,"youtube_ads":339.1,"creator_partnerships":687.4,"paid_search":171.1},{"week_start":"2026-06-01","actual":3486.0,"predicted":3556.9,"base":1622.2,"tiktok_ads":49.6,"meta_ads":549.5,"youtube_ads":413.3,"creator_partnerships":710.5,"paid_search":211.7},{"week_start":"2026-06-08","actual":3469.0,"predicted":3486.0,"base":1609.2,"tiktok_ads":264.6,"meta_ads":464.8,"youtube_ads":314.6,"creator_partnerships":675.7,"paid_search":157.2},{"week_start":"2026-06-15","actual":3836.0,"predicted":3770.0,"base":1597.5,"tiktok_ads":462.4,"meta_ads":547.5,"youtube_ads":383.9,"creator_partnerships":746.8,"paid_search":31.9},{"week_start":"2026-06-22","actual":3870.0,"predicted":3820.5,"base":1583.2,"tiktok_ads":422.4,"meta_ads":521.6,"youtube_ads":388.1,"creator_partnerships":746.8,"paid_search":158.3},{"week_start":"2026-06-29","actual":3487.0,"predicted":3516.6,"base":1577.5,"tiktok_ads":186.0,"meta_ads":520.9,"youtube_ads":334.5,"creator_partnerships":720.6,"paid_search":176.9},{"week_start":"2026-07-06","actual":3606.0,"predicted":3587.1,"base":1567.6,"tiktok_ads":256.3,"meta_ads":519.0,"youtube_ads":345.8,"creator_partnerships":709.4,"paid_search":189.1},{"week_start":"2026-07-13","actual":3573.0,"predicted":3492.3,"base":1564.7,"tiktok_ads":365.1,"meta_ads":429.1,"youtube_ads":242.4,"creator_partnerships":704.8,"paid_search":186.1},{"week_start":"2026-07-20","actual":3528.0,"predicted":3508.9,"base":1562.3,"tiktok_ads":460.9,"meta_ads":333.0,"youtube_ads":277.3,"creator_partnerships":679.4,"paid_search":195.9},{"week_start":"2026-07-27","actual":3791.0,"predicted":3813.6,"base":1562.8,"tiktok_ads":562.2,"meta_ads":587.2,"youtube_ads":323.6,"creator_partnerships":648.7,"paid_search":129.1},{"week_start":"2026-08-03","actual":3799.0,"predicted":3857.1,"base":1563.8,"tiktok_ads":504.0,"meta_ads":562.6,"youtube_ads":354.1,"creator_partnerships":657.6,"paid_search":214.9},{"week_start":"2026-08-10","actual":3543.0,"predicted":3719.5,"base":1574.0,"tiktok_ads":493.3,"meta_ads":551.6,"youtube_ads":319.3,"creator_partnerships":711.5,"paid_search":69.9},{"week_start":"2026-08-17","actual":3677.0,"predicted":3620.7,"base":1584.5,"tiktok_ads":419.0,"meta_ads":467.2,"youtube_ads":322.4,"creator_partnerships":675.4,"paid_search":152.3},{"week_start":"2026-08-24","actual":3451.0,"predicted":3350.8,"base":1591.2,"tiktok_ads":183.8,"meta_ads":372.3,"youtube_ads":334.1,"creator_partnerships":684.6,"paid_search":184.7},{"week_start":"2026-08-31","actual":3498.0,"predicted":3487.3,"base":1606.6,"tiktok_ads":368.1,"meta_ads":278.1,"youtube_ads":355.6,"creator_partnerships":683.3,"paid_search":195.5},{"week_start":"2026-09-07","actual":3839.0,"predicted":3876.8,"base":1619.6,"tiktok_ads":534.1,"meta_ads":426.2,"youtube_ads":393.4,"creator_partnerships":677.3,"paid_search":226.2},{"week_start":"2026-09-14","actual":3569.0,"predicted":3600.0,"base":1639.9,"tiktok_ads":386.7,"meta_ads":330.1,"youtube_ads":377.0,"creator_partnerships":676.2,"paid_search":190.0},{"week_start":"2026-09-21","actual":3563.0,"predicted":3625.7,"base":1657.7,"tiktok_ads":463.0,"meta_ads":239.9,"youtube_ads":401.4,"creator_partnerships":704.0,"paid_search":159.7},{"week_start":"2026-09-28","actual":3776.0,"predicted":3781.0,"base":1677.6,"tiktok_ads":398.1,"meta_ads":420.4,"youtube_ads":455.3,"creator_partnerships":678.0,"paid_search":151.6}]},"dq":[{"test":"stg_posts.post_id is unique","severity":"error","failing_rows":0,"status":"pass"},{"test":"stg_posts.platform in accepted values","severity":"error","failing_rows":0,"status":"pass"},{"test":"stg_posts.creator_tier in accepted values","severity":"error","failing_rows":0,"status":"pass"},{"test":"stg_posts.published_hour_local between 0 and 23","severity":"error","failing_rows":0,"status":"pass"},{"test":"stg_post_metrics.views non-negative","severity":"error","failing_rows":0,"status":"pass"},{"test":"stg_post_metrics engagement <= views","severity":"error","failing_rows":0,"status":"pass"},{"test":"every post has metrics","severity":"error","failing_rows":0,"status":"pass"},{"test":"every post has AI tags","severity":"error","failing_rows":0,"status":"pass"},{"test":"fct rowcount matches stg_posts","severity":"error","failing_rows":0,"status":"pass"},{"test":"video posts missing duration","severity":"warn","failing_rows":54,"status":"warn"},{"test":"posts tracked < 14 days","severity":"warn","failing_rows":14,"status":"warn"},{"test":"mmm weeks with zero total spend","severity":"warn","failing_rows":0,"status":"pass"}],"analyst":[{"question":"Which hook works best on TikTok?","sql":"SELECT hook, COUNT(*) AS posts, ROUND(AVG(CAST(is_breakout AS DOUBLE)) * 100, 1) AS breakout_rate_pct, ROUND(AVG(views)) AS avg_views FROM fct_post_performance WHERE is_breakout IS NOT NULL AND platform = &#x27;tiktok&#x27; GROUP BY hook ORDER BY breakout_rate_pct DESC","answer":"Breakout rate by hook on tiktok. Best: hot_take at 15.9% breakout rate; weakest: none at 4.1% breakout rate (groups under 30 posts excluded)."},{"question":"Do creator collabs help?","sql":"SELECT creator_tier, COUNT(*) AS posts, ROUND(AVG(CAST(is_breakout AS DOUBLE)) * 100, 1) AS breakout_rate_pct, ROUND(AVG(views)) AS avg_views FROM fct_post_performance WHERE is_breakout IS NOT NULL  GROUP BY creator_tier ORDER BY breakout_rate_pct DESC","answer":"Performance by creator collaboration tier. Best: macro at 18.9% breakout rate; weakest: none at 5.7% breakout rate (groups under 30 posts excluded)."},{"question":"Which brands are growing fastest?","sql":"WITH w AS (SELECT DISTINCT week_start FROM mart_brand_weekly ORDER BY week_start DESC LIMIT 16), r AS (SELECT week_start, ROW_NUMBER() OVER (ORDER BY week_start DESC) AS rn FROM w) SELECT b.brand, SUM(CASE WHEN r.rn &lt;= 8 THEN b.views ELSE 0 END) AS views_last_8w, SUM(CASE WHEN r.rn &gt; 8 THEN b.views ELSE 0 END) AS views_prior_8w, ROUND((SUM(CASE WHEN r.rn &lt;= 8 THEN b.views ELSE 0 END) * 1.0 / NULLIF(SUM(CASE WHEN r.rn &gt; 8 THEN b.views ELSE 0 END), 0) - 1) * 100, 1) AS growth_pct FROM mart_brand_weekly b JOIN r ON r.week_start = b.week_start WHERE 1=1  GROUP BY b.brand ORDER BY growth_pct DESC","answer":"Views by brand: last 8 weeks vs the 8 weeks before. Best: throws_nation at 91.7% view growth; weakest: gridiron_lab at -27.8% view growth."}]};
+const NS = "http://www.w3.org/2000/svg";
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmtK = v => v >= 1e9 ? (v/1e9).toFixed(1)+"B" : v >= 1e6 ? (v/1e6).toFixed(1)+"M" : v >= 1e3 ? (v/1e3).toFixed(0)+"K" : String(Math.round(v));
+const pct = (v, d=1) => (v*100).toFixed(d) + "%";
+const SERIES = ["--s1","--s2","--s3","--s4"];
+const PLAT_LABEL = {tiktok:"TikTok", instagram:"Instagram", youtube_shorts:"YT Shorts", youtube:"YouTube"};
+const nice = s => s.replace(/_/g, " ");
+
+function el(tag, attrs={}, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function svgFor(host, h) {
+  host.innerHTML = "";
+  const w = Math.max(280, host.clientWidth);
+  const s = el("svg", {width: w, height: h, viewBox: `0 0 ${w} ${h}`, role: "img"}, host);
+  return [s, w];
+}
+function txt(parent, x, y, s, o={}) {
+  const t = el("text", {x, y, fill: o.fill || css("--muted"), "font-size": o.size || 12, "text-anchor": o.anchor || "start",
+    "dominant-baseline": o.base || "middle", "font-weight": o.weight || 400}, parent);
+  t.textContent = s; return t;
+}
+function ticks(max, n=4) {
+  const raw = max / n, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1,2,2.5,5,10].map(m => m*mag).find(s => s >= raw);
+  const out = []; for (let v = 0; v <= max + 1e-9; v += step) out.push(v);
+  if (out[out.length-1] < max) out.push(out[out.length-1] + step);
+  return out;
+}
+function legend(id, items) {
+  document.getElementById(id).innerHTML = items.map(([n, c]) => `<span><i style="background:${css(c)}"></i>${n}</span>`).join("");
+}
+
+// ---- tooltip
+const tip = document.getElementById("tip");
+document.addEventListener("pointermove", e => {
+  const t = e.target.closest && e.target.closest("[data-tip]");
+  if (!t) { tip.hidden = true; return; }
+  tip.innerHTML = t.getAttribute("data-tip"); tip.hidden = false;
+  const r = tip.getBoundingClientRect();
+  let x = e.clientX + 14, y = e.clientY + 14;
+  if (x + r.width > innerWidth - 8) x = e.clientX - r.width - 14;
+  if (y + r.height > innerHeight - 8) y = e.clientY - r.height - 14;
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+});
+document.addEventListener("pointerleave", () => tip.hidden = true);
+
+// ---- line chart with crosshair
+function lineChart(id, x, series, o={}) {
+  const host = document.getElementById(id), H = o.h || 260;
+  const [s, W] = svgFor(host, H);
+  const m = {l: 44, r: o.labelRight ? 78 : 12, t: 10, b: 26};
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const ymin = o.ymin || 0;
+  const ymax = Math.max(...series.flatMap(sr => sr.values));
+  const tk = ticks(ymax - ymin).map(v => v + ymin);
+  const top = tk[tk.length-1];
+  const X = i => m.l + i * iw / (x.length - 1), Y = v => m.t + ih - (v - ymin) / (top - ymin) * ih;
+  tk.forEach(v => { el("line", {x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), stroke: css(v === ymin ? "--axis" : "--grid"), "stroke-width": 1}, s);
+    txt(s, m.l - 6, Y(v), (o.yfmt || fmtK)(v), {anchor: "end"}); });
+  const every = Math.ceil(x.length / (iw / 80));
+  x.forEach((d, i) => { if (i % every === 0) txt(s, X(i), H - 8, o.xfmt ? o.xfmt(d) : d, {anchor: "middle"}); });
+  series.forEach(sr => {
+    el("path", {d: sr.values.map((v, i) => `${i ? "L" : "M"}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(""),
+      fill: "none", stroke: css(sr.color), "stroke-width": 2, "stroke-linejoin": "round", "stroke-dasharray": sr.dash || ""}, s);
+    if (o.labelRight) { const last = sr.values.length - 1;
+      txt(s, X(last) + 6, Y(sr.values[last]), sr.name, {fill: css("--ink-2"), size: 12}); }
+  });
+  if (o.labelRight) { // de-collide right labels
+    const labels = [...s.querySelectorAll("text")].slice(-series.length).sort((a, b) => a.getAttribute("y") - b.getAttribute("y"));
+    for (let i = 1; i < labels.length; i++) { const py = +labels[i-1].getAttribute("y"), cy = +labels[i].getAttribute("y");
+      if (cy - py < 14) labels[i].setAttribute("y", py + 14); }
+  }
+  const guide = el("line", {y1: m.t, y2: m.t + ih, stroke: css("--axis"), "stroke-width": 1, visibility: "hidden"}, s);
+  const dots = series.map(sr => el("circle", {r: 4, fill: css(sr.color), stroke: css("--surface"), "stroke-width": 2, visibility: "hidden"}, s));
+  const step = iw / (x.length - 1);
+  x.forEach((d, i) => {
+    const r = el("rect", {x: X(i) - step/2, y: m.t, width: step, height: ih, fill: "transparent"}, s);
+    r.setAttribute("data-tip", `<b>${o.xfmt ? o.xfmt(d) : d}</b><br>` + series.map(sr => `${sr.name}: ${(o.tipfmt || fmtK)(sr.values[i])}`).join("<br>"));
+    r.addEventListener("pointerenter", () => { guide.setAttribute("x1", X(i)); guide.setAttribute("x2", X(i)); guide.setAttribute("visibility", "visible");
+      dots.forEach((c, k) => { c.setAttribute("cx", X(i)); c.setAttribute("cy", Y(series[k].values[i])); c.setAttribute("visibility", "visible"); }); });
+  });
+  s.addEventListener("pointerleave", () => { guide.setAttribute("visibility", "hidden"); dots.forEach(c => c.setAttribute("visibility", "hidden")); });
+}
+
+// ---- horizontal bars (1 or 2 series)
+function hbar(id, rows, o={}) {
+  const host = document.getElementById(id), keys = o.keys || ["value"], colors = o.colors || ["--s1"];
+  const band = keys.length > 1 ? 34 : 26, H = rows.length * band + 26;
+  const [s, W] = svgFor(host, H);
+  const labelW = o.labelW || Math.min(150, W * 0.36), m = {l: labelW, r: 52, t: 4, b: 22};
+  const iw = W - m.l - m.r;
+  const max = o.max || Math.max(...rows.flatMap(r => keys.map(k => r[k])));
+  const tk = ticks(max, 4), top = tk[tk.length-1], X = v => m.l + v / top * iw;
+  tk.forEach(v => { el("line", {x1: X(v), x2: X(v), y1: m.t, y2: H - m.b, stroke: css(v ? "--grid" : "--axis")}, s);
+    txt(s, X(v), H - 8, (o.fmt || String)(v), {anchor: "middle"}); });
+  const bh = keys.length > 1 ? 12 : 14;
+  rows.forEach((r, i) => {
+    const y0 = m.t + i * band + (band - bh * keys.length - 2 * (keys.length - 1)) / 2;
+    txt(s, m.l - 8, y0 + (bh * keys.length) / 2 + (keys.length - 1), r.label, {anchor: "end", fill: css("--ink-2"), size: 12.5});
+    keys.forEach((k, j) => {
+      const y = y0 + j * (bh + 2), w = Math.max(1, X(r[k]) - m.l);
+      const g = el("g", {}, s);
+      el("path", {d: `M${m.l},${y} h${w - 3} a3,3 0 0 1 3,3 v${bh - 6} a3,3 0 0 1 -3,3 h${-(w - 3)} z`, fill: css(colors[j])}, g);
+      el("rect", {x: m.l, y: y - 2, width: iw, height: bh + 4, fill: "transparent"}, g);
+      g.setAttribute("data-tip", `<b>${r.label}</b><br>${o.names ? o.names[j] + ": " : ""}${(o.fmt || String)(r[k])}${r.n ? `<br>${r.n} posts` : ""}`);
+      if (o.valueLabels !== false) txt(s, X(r[k]) + 6, y + bh/2, (o.fmt || String)(r[k]), {fill: css("--ink-2"), size: 11.5});
+    });
+  });
+}
+
+// ---- vertical bars
+function vbar(id, labels, values, o={}) {
+  const host = document.getElementById(id), H = o.h || 200;
+  const [s, W] = svgFor(host, H);
+  const m = {l: 40, r: 8, t: 10, b: 26}, iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const tk = ticks(Math.max(...values)), top = tk[tk.length-1];
+  const bw = iw / labels.length, Y = v => m.t + ih - v / top * ih;
+  tk.forEach(v => { el("line", {x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), stroke: css(v ? "--grid" : "--axis")}, s);
+    txt(s, m.l - 6, Y(v), (o.fmt || String)(v), {anchor: "end"}); });
+  labels.forEach((l, i) => {
+    const x = m.l + i * bw + 1, w = Math.max(2, bw - 2), h = Math.max(0, Y(0) - Y(values[i]));
+    const hl = o.highlight && o.highlight(l);
+    const g = el("g", {}, s);
+    el("path", {d: h > 3 ? `M${x},${Y(0)} v${-(h - 3)} a3,3 0 0 1 3,-3 h${w - 6} a3,3 0 0 1 3,3 v${h - 3} z` : `M${x},${Y(0)} v${-h} h${w} v${h} z`,
+      fill: css(hl ? "--s1" : "--axis")}, g);
+    el("rect", {x: x - 1, y: m.t, width: bw, height: ih, fill: "transparent"}, g);
+    g.setAttribute("data-tip", o.tip ? o.tip(i) : `${l}: ${(o.fmt || String)(values[i])}`);
+    if (i % (bw < 22 ? 3 : 1) === 0) txt(s, x + w/2, H - 8, o.xfmt ? o.xfmt(l) : l, {anchor: "middle"});
+  });
+}
+
+// ---- heatmap (sequential blue)
+const RAMP = ["#cde2fb","#b7d3f6","#9ec5f4","#86b6ef","#6da7ec","#5598e7","#3987e5","#2a78d6","#256abf","#1c5cab","#184f95","#104281","#0d366b"];
+function heatmap(id, rowsL, colsL, M, o={}) {
+  const host = document.getElementById(id);
+  const cw0 = 84, ch = 40, H = rowsL.length * ch + 30;
+  const [s, W] = svgFor(host, H);
+  const lw = Math.min(96, W * 0.25), cw = (W - lw) / colsL.length;
+  const vals = M.flat().map(c => c.v), mn = Math.min(...vals), mx = Math.max(...vals);
+  colsL.forEach((c, j) => txt(s, lw + j * cw + cw/2, 12, c, {anchor: "middle", size: 12, fill: css("--ink-2")}));
+  rowsL.forEach((r, i) => {
+    txt(s, lw - 8, 26 + i * ch + ch/2, r, {anchor: "end", size: 12.5, fill: css("--ink-2")});
+    colsL.forEach((c, j) => {
+      const cell = M[i][j], t = (cell.v - mn) / (mx - mn || 1), k = Math.round(t * (RAMP.length - 1));
+      const g = el("g", {}, s);
+      el("rect", {x: lw + j * cw + 1, y: 26 + i * ch + 1, width: cw - 2, height: ch - 2, rx: 3, fill: RAMP[k]}, g);
+      txt(g, lw + j * cw + cw/2, 26 + i * ch + ch/2, pct(cell.v, 0), {anchor: "middle", size: 12.5, weight: 600, fill: k >= 6 ? "#ffffff" : "#0b0b0b"});
+      g.setAttribute("data-tip", `<b>${r} · ${c}</b><br>Breakout rate ${pct(cell.v)}<br>${cell.n} posts`);
+    });
+  });
+}
+
+// ---- static parts
+function renderStatic() {
+  const K = D.kpis;
+  document.getElementById("period").textContent = `${K.posts.toLocaleString()} posts from ${K.period_start} to ${K.period_end}`;
+  document.querySelectorAll(".bm").forEach(e => e.textContent = D.breakout_multiple);
+  const tiles = [
+    ["Posts analyzed", K.posts.toLocaleString(), `${K.brands} brands · 4 platforms`],
+    ["Total views", fmtK(K.views), `${pct(K.breakout_rate)} of posts broke out`],
+    ["Breakout model", "AUC " + D.model.models.gradient_boosting.roc_auc.toFixed(2), `${D.model.models.gradient_boosting.lift_top_decile}× lift in top decile`],
+    ["Media mix fit", "R² " + D.mmm.fit.r2.toFixed(2), `${pct(D.mmm.fit.holdout_mape)} error on held-out weeks`],
+    ["Budget shift", "+" + D.mmm.budget.lift_pct.toFixed(1) + "%", "paid conversions at the same spend"],
+  ];
+  document.getElementById("tiles").innerHTML = tiles.map(([k, v, d]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join("");
+
+  const M = D.model, mm = M.models;
+  const rows = [["Gradient boosting", mm.gradient_boosting], ["Logistic regression", mm.logistic_regression], ["Gradient boosting, no AI tags", mm.gradient_boosting_without_ai_tags]];
+  const best = Math.max(...rows.map(r => r[1].roc_auc));
+  document.getElementById("tb-models").innerHTML = `<thead><tr><th>Model</th><th class="num">ROC-AUC</th><th class="num">PR-AUC</th><th class="num">Top-10% lift</th></tr></thead><tbody>` +
+    rows.map(([n, r]) => `<tr class="${r.roc_auc === best ? "best" : ""}"><td>${n}</td><td class="num">${r.roc_auc.toFixed(3)}</td><td class="num">${r.pr_auc.toFixed(3)}</td><td class="num">${r.lift_top_decile.toFixed(1)}×</td></tr>`).join("") + "</tbody>";
+  document.getElementById("model-sub").textContent = `Trained on ${M.train_rows.toLocaleString()} posts, tested on ${M.test_rows.toLocaleString()} posts published from ${M.test_period_start}. Breakout base rate in test: ${pct(M.base_rate_test)}.`;
+  const g = mm.gradient_boosting;
+  document.getElementById("lift-note").innerHTML = `Posts the model ranks in its <b>top 10%</b> break out <b>${g.lift_top_decile}×</b> as often as average, a short list a programming team can prioritize.`;
+  const nt = mm.gradient_boosting_without_ai_tags;
+  document.getElementById("ablation-note").innerHTML = `Adding the AI tags moves ROC-AUC from <b>${nt.roc_auc.toFixed(3)}</b> to <b>${g.roc_auc.toFixed(3)}</b> and PR-AUC from <b>${nt.pr_auc.toFixed(3)}</b> to <b>${g.pr_auc.toFixed(3)}</b>.`;
+
+  const src = D.tagger.source_mix, total = Object.values(src).reduce((a, b) => a + b, 0);
+  document.getElementById("tag-source").textContent = "Tagged by: " + Object.entries(src).map(([k, v]) => `${nice(k)} ${pct(v / total, 0)}`).join(" · ") +
+    (src.rules ? ". Set an API key to run the LLM tagger." : "");
+
+  const B = D.mmm.budget, chs = Object.keys(B.current);
+  const up = chs.map(c => [c, B.recommended[c] - B.current[c]]).sort((a, b) => b[1] - a[1]);
+  document.getElementById("budget-note").innerHTML = `Move about <b>$${Math.round(up[0][1]).toLocaleString()}/week</b> into <b>${nice(up[0][0])}</b> and out of <b>${nice(up[up.length-1][0])}</b>. Expected: <b>+${B.lift_pct.toFixed(1)}%</b> paid-driven conversions with total spend unchanged at $${Math.round(B.weekly_total).toLocaleString()}/week.`;
+
+  document.getElementById("qa").innerHTML = D.analyst.map(x => `<div class="qa"><div class="q">${x.question}</div><pre>${x.sql}</pre><div class="a">${x.answer}</div></div>`).join("");
+
+  document.getElementById("tb-dq").innerHTML = `<thead><tr><th>Test</th><th>Severity</th><th class="num">Failing rows</th><th>Status</th></tr></thead><tbody>` +
+    D.dq.map(t => `<tr><td>${t.test}</td><td>${t.severity}</td><td class="num">${t.failing_rows.toLocaleString()}</td><td><span class="pill ${t.status}">${t.status}</span></td></tr>`).join("") + "</tbody>";
+  document.getElementById("built").textContent = `Generated ${D.generated_at} · warehouse engine: ${D.engine}`;
+}
+
+// ---- charts (re-rendered on resize/theme change)
+let themePlatform = "all";
+function renderCharts() {
+  const W = D.weekly;
+  const plats = Object.keys(W.series);
+  legend("lg-weekly", plats.map((p, i) => [PLAT_LABEL[p], SERIES[i]]));
+  lineChart("ch-weekly", W.weeks, plats.map((p, i) => ({name: PLAT_LABEL[p], values: W.series[p], color: SERIES[i]})),
+    {xfmt: d => d.slice(2, 7).replace("-", "/"), labelRight: document.getElementById("ch-weekly").clientWidth > 520});
+
+  const seg = document.getElementById("seg-theme");
+  if (!seg.children.length) {
+    seg.innerHTML = ["all", ...plats].map(p => `<button type="button" id="seg-${p}" data-p="${p}" aria-pressed="${p === themePlatform}">${p === "all" ? "All" : PLAT_LABEL[p]}</button>`).join("");
+    seg.addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; themePlatform = b.dataset.p;
+      [...seg.children].forEach(c => c.setAttribute("aria-pressed", c.dataset.p === themePlatform)); drawTheme(); });
+  }
+  drawTheme();
+
+  const H = D.hook_heat;
+  heatmap("ch-heat", H.hooks.map(nice), H.platforms.map(p => PLAT_LABEL[p]), H.matrix);
+
+  vbar("ch-hour", D.hours.map(h => h.hour), D.hours.map(h => h.rate), {fmt: v => pct(v, 0), highlight: h => h >= 17 && h <= 21,
+    xfmt: h => h === 0 ? "12a" : h < 12 ? h + "a" : h === 12 ? "12p" : (h - 12) + "p",
+    tip: i => `<b>${D.hours[i].hour}:00</b><br>Breakout rate ${pct(D.hours[i].rate)}<br>${D.hours[i].n} posts`});
+
+  const acc = D.tagger.accuracy;
+  hbar("ch-tagacc", ["theme", "hook", "tone"].map(k => ({label: k, value: acc[k]})), {max: 1, fmt: v => pct(v, 0), labelW: 64});
+
+  const mm = D.model.models;
+  hbar("ch-ablation", [{label: "ROC-AUC", a: mm.gradient_boosting_without_ai_tags.roc_auc, b: mm.gradient_boosting.roc_auc},
+                       {label: "PR-AUC", a: mm.gradient_boosting_without_ai_tags.pr_auc, b: mm.gradient_boosting.pr_auc}],
+    {keys: ["a", "b"], colors: ["--axis", "--s1"], names: ["Without tags", "With AI tags"], fmt: v => v.toFixed(2), labelW: 70, max: 1});
+
+  hbar("ch-imp", D.model.feature_importance.slice(0, 10).map(f => ({label: nice(f.feature), value: Math.max(0, f.importance)})),
+    {fmt: v => v.toFixed(3), labelW: 130});
+
+  const F = D.mmm.weekly;
+  legend("lg-fit", [["Actual", "--ink-2"], ["Model", "--s1"]]);
+  lineChart("ch-fit", F.map(r => r.week_start), [
+    {name: "Actual", values: F.map(r => r.actual), color: "--ink-2"},
+    {name: "Model", values: F.map(r => r.predicted), color: "--s1", dash: "5 3"}],
+    {xfmt: d => d.slice(2, 7).replace("-", "/"), ymin: Math.floor(Math.min(...F.map(r => r.actual)) / 500) * 500,
+     yfmt: v => v.toLocaleString(), tipfmt: v => Math.round(v).toLocaleString(), h: 240});
+
+  const C = D.mmm.channels;
+  legend("lg-roi", [["Model estimate", "--s1"], ["True value", "--axis"]]);
+  hbar("ch-roi", C.map(c => ({label: nice(c.channel), a: c.roi_per_1k, b: c.true_roi_per_1k ?? 0})),
+    {keys: ["a", "b"], colors: ["--s1", "--axis"], names: ["Estimated", "True"], fmt: v => v.toFixed(0), labelW: 130});
+
+  const B = D.mmm.budget;
+  legend("lg-budget", [["Current", "--axis"], ["Recommended", "--s1"]]);
+  hbar("ch-budget", Object.keys(B.current).map(c => ({label: nice(c), a: B.current[c], b: B.recommended[c]})),
+    {keys: ["a", "b"], colors: ["--axis", "--s1"], names: ["Current", "Recommended"], fmt: v => "$" + fmtK(v), labelW: 130});
+}
+function drawTheme() {
+  const rows = D.themes[themePlatform].slice().sort((a, b) => b.rate - a.rate);
+  hbar("ch-theme", rows.map(r => ({label: nice(r.theme), value: r.rate, n: r.n})), {fmt: v => pct(v, 0), labelW: 120});
+}
+
+renderStatic();
+renderCharts();
+let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(renderCharts, 150); });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", renderCharts);
+new MutationObserver(renderCharts).observe(document.documentElement, {attributes: true, attributeFilter: ["data-theme"]});
+</script>
+
+</body>
+</html>
