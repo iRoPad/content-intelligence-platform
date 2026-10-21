@@ -91,6 +91,14 @@ pre { margin: 0; background: var(--code-bg); border-radius: 6px; padding: 10px 1
 .qa .a { color: var(--ink-2); font-size: 14px; }
 .tip { position: fixed; pointer-events: none; z-index: 20; background: var(--ink); color: var(--surface); font-size: 12.5px; line-height: 1.4; padding: 7px 9px; border-radius: 6px; max-width: 240px; box-shadow: 0 4px 14px rgba(0,0,0,.18); }
 .tip b { font-weight: 600; }
+.term { text-decoration: underline dotted; text-decoration-color: var(--muted); text-underline-offset: 3px; cursor: help; }
+.term:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+.gloss { columns: 3 280px; column-gap: 40px; }
+.gloss > div { break-inside: avoid; padding-bottom: 28px; }
+.gloss h3 { font-family: var(--f-mono); font-size: 12px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+.gloss dl { margin: 0; display: grid; gap: 12px; }
+.gloss dt { font-weight: 600; }
+.gloss dd { margin: 2px 0 0; color: var(--ink-2); font-size: 14px; max-width: 60ch; }
 footer { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; display: grid; gap: 4px; }
 code { font-family: var(--f-mono); font-size: .9em; }
 @media (max-width: 520px) { .tile .v { font-size: 26px; } }
@@ -100,7 +108,7 @@ code { font-family: var(--f-mono); font-size: .9em; }
   <header class="top">
     <div class="eyebrow">Portfolio project · end-to-end analytics + AI</div>
     <h1>Content Intelligence Platform</h1>
-    <p class="lede">What makes a social video break out, and where should the paid budget go? Raw platform exports become a tested SQL warehouse, an LLM tags every caption, a model scores breakout odds before posting, and a media mix model reallocates spend. Every number below is computed by the pipeline on <span id="period"></span>.</p>
+    <p class="lede">What makes a social video break out, and where should the paid budget go? Raw platform exports become a tested SQL warehouse, an LLM tags every caption, a model scores breakout odds before posting, and a <span class="term" data-term="mmm">media mix model</span> reallocates spend. Every number below is computed by the pipeline on <span id="period"></span>.</p>
     <div class="flow" aria-label="Pipeline stages">
       <span class="step">raw API exports</span><span class="arrow">→</span>
       <span class="step">SQL warehouse</span><span class="arrow">→</span>
@@ -117,7 +125,7 @@ code { font-family: var(--f-mono); font-size: .9em; }
     <header>
       <div class="eyebrow">Layer 1 · Warehouse</div>
       <h2>What the content is doing</h2>
-      <p>A breakout is a post that reaches <span class="bm"></span>× the average views of the previous 30 posts from the same brand on the same platform. Comparing against a trailing baseline keeps big accounts from dominating and avoids using future data.</p>
+      <p>A breakout is a post that reaches <span class="bm"></span>× the average views of the previous 30 posts from the same brand on the same platform. Comparing against a <span class="term" data-term="baseline">trailing baseline</span> keeps big accounts from dominating and avoids using future data.</p>
     </header>
     <div class="card">
       <h3>Weekly views by platform</h3>
@@ -147,7 +155,7 @@ code { font-family: var(--f-mono); font-size: .9em; }
     <header>
       <div class="eyebrow">Layer 2 · AI tagging</div>
       <h2>Turning captions into features</h2>
-      <p>Each caption is classified into a fixed taxonomy (theme, hook, tone) by an LLM with a strict JSON contract, cached by caption hash, with a keyword-rules fallback. Accuracy is measured against a labeled holdout so the LLM has to beat the cheap baseline to justify its cost.</p>
+      <p>Each caption is classified into a fixed taxonomy (<span class="term" data-term="taxonomy">theme, hook, tone</span>) by an <span class="term" data-term="llm">LLM</span> with a strict <span class="term" data-term="json">JSON contract</span>, cached by caption hash, with a <span class="term" data-term="rules">keyword-rules fallback</span>. Accuracy is measured against a <span class="term" data-term="labels">labeled holdout</span> so the LLM has to beat the cheap baseline to justify its cost.</p>
     </header>
     <div class="grid2">
       <div class="card">
@@ -157,7 +165,8 @@ code { font-family: var(--f-mono); font-size: .9em; }
       </div>
       <div class="card">
         <h3>Do the AI tags help the model?</h3>
-        <p class="sub">Same model, same data, with and without the tag features.</p>
+        <p class="sub">Same model, same data, with and without the tag features (an <span class="term" data-term="ablation">ablation</span>).</p>
+        <div class="legend" id="lg-ablation"></div>
         <div class="chart" id="ch-ablation"></div>
         <div class="callout" id="ablation-note"></div>
       </div>
@@ -168,7 +177,7 @@ code { font-family: var(--f-mono); font-size: .9em; }
     <header>
       <div class="eyebrow">Layer 3 · Machine learning</div>
       <h2>Predicting breakouts before posting</h2>
-      <p>Gradient boosting on pre-publish features only (tags, format, length, timing, creator collab), validated on the most recent weeks with a time-based split, the way it would be used in production.</p>
+      <p><span class="term" data-term="gbm">Gradient boosting</span> on pre-publish features only (tags, format, length, timing, creator collab), validated on the most recent weeks with a <span class="term" data-term="time_split">time-based split</span>, the way it would be used in production.</p>
     </header>
     <div class="grid2">
       <div class="card">
@@ -179,7 +188,7 @@ code { font-family: var(--f-mono); font-size: .9em; }
       </div>
       <div class="card">
         <h3>What drives the prediction</h3>
-        <p class="sub">Permutation importance: drop in ROC-AUC when a feature is shuffled.</p>
+        <p class="sub"><span class="term" data-term="perm">Permutation importance</span>: drop in <span class="term" data-term="roc_auc">ROC-AUC</span> when a feature is shuffled.</p>
         <div class="chart" id="ch-imp"></div>
       </div>
     </div>
@@ -189,7 +198,7 @@ code { font-family: var(--f-mono); font-size: .9em; }
     <header>
       <div class="eyebrow">Layer 4 · Marketing mix model</div>
       <h2>Where the paid budget should go</h2>
-      <p>Weekly conversions are modeled as baseline + trend + seasonality + organic reach + each channel's spend with carryover (adstock) and diminishing returns (saturation). The data generator knows the true channel effects, so the estimates can be checked against them.</p>
+      <p>Weekly conversions are modeled as baseline + trend + seasonality + organic reach + each channel's spend with <span class="term" data-term="adstock">carryover (adstock)</span> and <span class="term" data-term="saturation">diminishing returns (saturation)</span>. The data generator knows the true channel effects, so the estimates can be checked against them.</p>
     </header>
     <div class="card">
       <h3>Conversions: actual vs. model</h3>
@@ -198,7 +207,7 @@ code { font-family: var(--f-mono); font-size: .9em; }
     </div>
     <div class="grid2">
       <div class="card">
-        <h3>Conversions per $1k spend, estimated vs. true</h3>
+        <h3><span class="term" data-term="roi">Conversions per $1k spend</span>, estimated vs. true</h3>
         <div class="legend" id="lg-roi"></div>
         <div class="chart" id="ch-roi"></div>
       </div>
@@ -215,7 +224,7 @@ code { font-family: var(--f-mono); font-size: .9em; }
     <header>
       <div class="eyebrow">Layer 5 · AI analyst</div>
       <h2>Ask the warehouse a question</h2>
-      <p>Natural language becomes SQL, which passes guardrails (single read-only SELECT, allow-listed tables, enforced row limit) before it runs. These answers were generated by the pipeline from <code>python -m ciq ask "…"</code>.</p>
+      <p>Natural language becomes SQL, which passes <span class="term" data-term="guardrails">guardrails</span> (single read-only SELECT, allow-listed tables, enforced row limit) before it runs. These answers were generated by the pipeline from <code>python -m ciq ask "…"</code>.</p>
     </header>
     <div class="card" id="qa"></div>
   </section>
@@ -224,13 +233,22 @@ code { font-family: var(--f-mono); font-size: .9em; }
     <header>
       <div class="eyebrow">Data quality</div>
       <h2>Tests that gate every run</h2>
-      <p>Blocking tests stop the pipeline before bad data reaches a model or this page. Warnings are tracked. The raw exports include duplicate rows, inconsistent platform names and glitched metric snapshots on purpose, and staging fixes them.</p>
+      <p><span class="term" data-term="blocking">Blocking tests</span> stop the pipeline before bad data reaches a model or this page. <span class="term" data-term="warning">Warnings</span> are tracked. The raw exports include duplicate rows, inconsistent platform names and glitched metric snapshots on purpose, and <span class="term" data-term="staging">staging</span> fixes them.</p>
     </header>
     <div class="card"><div class="tablewrap"><table id="tb-dq"></table></div></div>
   </section>
 
+  <section id="glossary">
+    <header>
+      <div class="eyebrow">Reference</div>
+      <h2>Glossary</h2>
+      <p>Plain-English definitions for the terms on this page. Terms with a dotted underline show their definition when you hover or tap them.</p>
+    </header>
+    <div class="card"><div class="gloss" id="gloss"></div></div>
+  </section>
+
   <footer>
-    <div>Synthetic data with planted effects so results can be validated. Built with Python, SQL (DuckDB or SQLite), scikit-learn, SciPy and the Anthropic API.</div>
+    <div>Synthetic data with planted effects so results can be validated. Built with Python, SQL (DuckDB or SQLite), scikit-learn, SciPy and the Anthropic API. Rebuilt by <span class="term" data-term="cicd">CI/CD</span> on every push.</div>
     <div id="built"></div>
   </footer>
 </div>
@@ -274,9 +292,82 @@ function legend(id, items) {
   document.getElementById(id).innerHTML = items.map(([n, c]) => `<span><i style="background:${css(c)}"></i>${n}</span>`).join("");
 }
 
+// ---- glossary
+const BM = D.breakout_multiple, BR = pct(D.model.base_rate_test, 0);
+const GLOSSARY = [
+  ["Content", [
+    ["breakout", "Breakout", `A post that reaches ${BM}× the average views of the previous 30 posts from the same brand on the same platform.`],
+    ["baseline", "Trailing baseline", "The average views of an account's previous 30 posts. Each post is judged only against what came before it, so the label never relies on future information."],
+    ["base_rate", "Base rate", `The share of all posts that broke out (about ${BR} in the test period). A model is only useful if it beats this.`],
+  ]],
+  ["AI tagging", [
+    ["llm", "LLM", "Large language model: an AI model, such as Claude, that reads and writes text. Here it reads each caption and labels it."],
+    ["taxonomy", "Taxonomy", "The fixed list of labels the tagger may use, for example theme = trivia, challenge, tutorial, interview."],
+    ["json", "JSON contract", "The AI must reply in a strict machine-readable format. Any answer outside the allowed labels is rejected."],
+    ["rules", "Rules baseline", "A simple keyword matcher (\"quiz\" means trivia) used as the cheap comparison, and as the fallback when no API key is set."],
+    ["labels", "Labeled holdout", "Posts with known correct labels, used only to score how accurate the tagger is."],
+    ["ablation", "Ablation", "Removing one ingredient (here, the AI tags), rerunning, and measuring how much results drop."],
+  ]],
+  ["Machine learning", [
+    ["gbm", "Gradient boosting", "A model that builds many small decision trees, each one correcting the mistakes of the ones before it. A strong default for spreadsheet-style data."],
+    ["logit", "Logistic regression", "A simpler classic model that weighs each factor independently. Used as the comparison point."],
+    ["time_split", "Time-based split", "Train on older posts and test on the newest 16 weeks, the same way the model would be used in practice."],
+    ["roc_auc", "ROC-AUC", "How well the model ranks breakouts above other posts. 0.5 is a coin flip, 1.0 is perfect."],
+    ["pr_auc", "PR-AUC", `How precise the model is when it flags breakouts. Better suited to rare events; compare it with the base rate (about ${BR}).`],
+    ["lift", "Top-decile lift", "How much more often the model's top-scored 10% of posts break out than posts overall. 2× means twice the normal rate."],
+    ["perm", "Permutation importance", "Shuffle one input and see how much accuracy drops. A bigger drop means the model leans on it more."],
+  ]],
+  ["Media mix", [
+    ["mmm", "Marketing mix model (MMM)", "A statistical model that splits conversions into what each marketing channel drove, plus a baseline that would happen anyway."],
+    ["adstock", "Adstock", "Carryover. Ads keep working after the week they run; adstock models how quickly that effect fades."],
+    ["saturation", "Saturation", "Diminishing returns. Each extra dollar in a channel buys less than the one before it."],
+    ["roi", "Conversions per $1k", "Average conversions produced by each $1,000 of spend over the whole period."],
+    ["marginal", "Marginal ROI", "Conversions from the next $1,000 spent. This, not the average, decides where new budget should go."],
+    ["r2", "R²", "The share of week-to-week swings in conversions the model explains. 0.94 means 94%."],
+    ["mape", "MAPE", "Mean absolute percentage error: how far off predictions are on average, measured on weeks the model never saw."],
+  ]],
+  ["Data engineering", [
+    ["staging", "Staging", "The SQL step that cleans raw data: removes duplicates, standardizes names and converts time zones."],
+    ["blocking", "Blocking test", "A check that stops the pipeline if it fails, so bad data never reaches a model or this page."],
+    ["warning", "Warning", "A check that flags an issue for review without stopping the run."],
+    ["guardrails", "SQL guardrails", "Safety checks on AI-written SQL: read-only, a single statement, approved tables only, and a row limit."],
+    ["cicd", "CI/CD", "Continuous integration and deployment: GitHub reruns the pipeline and tests on every change and republishes this page."],
+  ]],
+];
+const DEF = Object.fromEntries(GLOSSARY.flatMap(([, items]) => items.map(([k, t, d]) => [k, [t, d]])));
+const term = (k, text) => `<span class="term" data-term="${k}">${text}</span>`;
+function wireTerms() {
+  document.querySelectorAll(".term[data-term]").forEach(e => {
+    const d = DEF[e.dataset.term]; if (!d) return;
+    e.setAttribute("data-tip", `<b>${d[0]}</b><br>${d[1]}`);
+    e.tabIndex = 0;
+  });
+}
+function renderGlossary() {
+  document.getElementById("gloss").innerHTML = GLOSSARY.map(([g, items]) =>
+    `<div><h3>${g}</h3><dl>${items.map(([k, t, d]) => `<div id="g-${k}"><dt>${t}</dt><dd>${d}</dd></div>`).join("")}</dl></div>`).join("");
+}
+
 // ---- tooltip
 const tip = document.getElementById("tip");
+function showTip(t, cx, cy) {
+  tip.innerHTML = t.getAttribute("data-tip"); tip.hidden = false;
+  const r = tip.getBoundingClientRect();
+  let x = cx + 14, y = cy + 14;
+  if (x + r.width > innerWidth - 8) x = Math.max(8, cx - r.width - 14);
+  if (y + r.height > innerHeight - 8) y = cy - r.height - 14;
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+}
+document.addEventListener("click", e => {  // tap support for touch screens
+  const t = e.target.closest && e.target.closest("[data-tip]");
+  if (t) showTip(t, e.clientX, e.clientY); else tip.hidden = true;
+});
+document.addEventListener("focusin", e => {
+  if (e.target.matches && e.target.matches(".term")) { const r = e.target.getBoundingClientRect(); showTip(e.target, r.left, r.bottom); }
+});
+document.addEventListener("focusout", () => tip.hidden = true);
 document.addEventListener("pointermove", e => {
+  if (e.pointerType === "touch") return;
   const t = e.target.closest && e.target.closest("[data-tip]");
   if (!t) { tip.hidden = true; return; }
   tip.innerHTML = t.getAttribute("data-tip"); tip.hidden = false;
@@ -401,23 +492,23 @@ function renderStatic() {
   document.querySelectorAll(".bm").forEach(e => e.textContent = D.breakout_multiple);
   const tiles = [
     ["Posts analyzed", K.posts.toLocaleString(), `${K.brands} brands · 4 platforms`],
-    ["Total views", fmtK(K.views), `${pct(K.breakout_rate)} of posts broke out`],
-    ["Breakout model", "AUC " + D.model.models.gradient_boosting.roc_auc.toFixed(2), `${D.model.models.gradient_boosting.lift_top_decile}× lift in top decile`],
-    ["Media mix fit", "R² " + D.mmm.fit.r2.toFixed(2), `${pct(D.mmm.fit.holdout_mape)} error on held-out weeks`],
+    ["Total views", fmtK(K.views), `${pct(K.breakout_rate)} of posts ${term("breakout", "broke out")}`],
+    ["Breakout model", `${term("roc_auc", "AUC")} ` + D.model.models.gradient_boosting.roc_auc.toFixed(2), `${D.model.models.gradient_boosting.lift_top_decile}× ${term("lift", "lift")} in top decile`],
+    ["Media mix fit", `${term("r2", "R²")} ` + D.mmm.fit.r2.toFixed(2), `${pct(D.mmm.fit.holdout_mape)} ${term("mape", "error")} on held-out weeks`],
     ["Budget shift", "+" + D.mmm.budget.lift_pct.toFixed(1) + "%", "paid conversions at the same spend"],
   ];
   document.getElementById("tiles").innerHTML = tiles.map(([k, v, d]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join("");
 
   const M = D.model, mm = M.models;
-  const rows = [["Gradient boosting", mm.gradient_boosting], ["Logistic regression", mm.logistic_regression], ["Gradient boosting, no AI tags", mm.gradient_boosting_without_ai_tags]];
+  const rows = [[term("gbm", "Gradient boosting"), mm.gradient_boosting], [term("logit", "Logistic regression"), mm.logistic_regression], [term("ablation", "Gradient boosting, no AI tags"), mm.gradient_boosting_without_ai_tags]];
   const best = Math.max(...rows.map(r => r[1].roc_auc));
-  document.getElementById("tb-models").innerHTML = `<thead><tr><th>Model</th><th class="num">ROC-AUC</th><th class="num">PR-AUC</th><th class="num">Top-10% lift</th></tr></thead><tbody>` +
-    rows.map(([n, r]) => `<tr class="${r.roc_auc === best ? "best" : ""}"><td>${n}</td><td class="num">${r.roc_auc.toFixed(3)}</td><td class="num">${r.pr_auc.toFixed(3)}</td><td class="num">${r.lift_top_decile.toFixed(1)}×</td></tr>`).join("") + "</tbody>";
-  document.getElementById("model-sub").textContent = `Trained on ${M.train_rows.toLocaleString()} posts, tested on ${M.test_rows.toLocaleString()} posts published from ${M.test_period_start}. Breakout base rate in test: ${pct(M.base_rate_test)}.`;
+  document.getElementById("tb-models").innerHTML = `<thead><tr><th>Model</th><th class="num">${term("roc_auc", "ROC-AUC")}</th><th class="num">${term("pr_auc", "PR-AUC")}</th><th class="num">${term("lift", "Top-10% lift")}</th></tr></thead><tbody>` +
+    rows.map(([n, r, k]) => `<tr class="${r.roc_auc === best ? "best" : ""}"><td>${n}</td><td class="num">${r.roc_auc.toFixed(3)}</td><td class="num">${r.pr_auc.toFixed(3)}</td><td class="num">${r.lift_top_decile.toFixed(1)}×</td></tr>`).join("") + "</tbody>";
+  document.getElementById("model-sub").innerHTML = `Trained on ${M.train_rows.toLocaleString()} posts, tested on ${M.test_rows.toLocaleString()} posts published from ${M.test_period_start}. Breakout ${term("base_rate", "base rate")} in test: ${pct(M.base_rate_test)}.`;
   const g = mm.gradient_boosting;
   document.getElementById("lift-note").innerHTML = `Posts the model ranks in its <b>top 10%</b> break out <b>${g.lift_top_decile}×</b> as often as average, a short list a programming team can prioritize.`;
   const nt = mm.gradient_boosting_without_ai_tags;
-  document.getElementById("ablation-note").innerHTML = `Adding the AI tags moves ROC-AUC from <b>${nt.roc_auc.toFixed(3)}</b> to <b>${g.roc_auc.toFixed(3)}</b> and PR-AUC from <b>${nt.pr_auc.toFixed(3)}</b> to <b>${g.pr_auc.toFixed(3)}</b>.`;
+  document.getElementById("ablation-note").innerHTML = `Adding the AI tags moves ${term("roc_auc", "ROC-AUC")} from <b>${nt.roc_auc.toFixed(3)}</b> to <b>${g.roc_auc.toFixed(3)}</b> and ${term("pr_auc", "PR-AUC")} from <b>${nt.pr_auc.toFixed(3)}</b> to <b>${g.pr_auc.toFixed(3)}</b>.`;
 
   const src = D.tagger.source_mix, total = Object.values(src).reduce((a, b) => a + b, 0);
   document.getElementById("tag-source").textContent = "Tagged by: " + Object.entries(src).map(([k, v]) => `${nice(k)} ${pct(v / total, 0)}`).join(" · ") +
@@ -425,7 +516,7 @@ function renderStatic() {
 
   const B = D.mmm.budget, chs = Object.keys(B.current);
   const up = chs.map(c => [c, B.recommended[c] - B.current[c]]).sort((a, b) => b[1] - a[1]);
-  document.getElementById("budget-note").innerHTML = `Move about <b>$${Math.round(up[0][1]).toLocaleString()}/week</b> into <b>${nice(up[0][0])}</b> and out of <b>${nice(up[up.length-1][0])}</b>. Expected: <b>+${B.lift_pct.toFixed(1)}%</b> paid-driven conversions with total spend unchanged at $${Math.round(B.weekly_total).toLocaleString()}/week.`;
+  document.getElementById("budget-note").innerHTML = `Based on ${term("marginal", "marginal ROI")}, move about <b>$${Math.round(up[0][1]).toLocaleString()}/week</b> into <b>${nice(up[0][0])}</b> and out of <b>${nice(up[up.length-1][0])}</b>. Expected: <b>+${B.lift_pct.toFixed(1)}%</b> paid-driven conversions with total spend unchanged at $${Math.round(B.weekly_total).toLocaleString()}/week.`;
 
   document.getElementById("qa").innerHTML = D.analyst.map(x => `<div class="qa"><div class="q">${x.question}</div><pre>${x.sql}</pre><div class="a">${x.answer}</div></div>`).join("");
 
@@ -462,6 +553,7 @@ function renderCharts() {
   hbar("ch-tagacc", ["theme", "hook", "tone"].map(k => ({label: k, value: acc[k]})), {max: 1, fmt: v => pct(v, 0), labelW: 64});
 
   const mm = D.model.models;
+  legend("lg-ablation", [["Without tags", "--axis"], ["With AI tags", "--s1"]]);
   hbar("ch-ablation", [{label: "ROC-AUC", a: mm.gradient_boosting_without_ai_tags.roc_auc, b: mm.gradient_boosting.roc_auc},
                        {label: "PR-AUC", a: mm.gradient_boosting_without_ai_tags.pr_auc, b: mm.gradient_boosting.pr_auc}],
     {keys: ["a", "b"], colors: ["--axis", "--s1"], names: ["Without tags", "With AI tags"], fmt: v => v.toFixed(2), labelW: 70, max: 1});
@@ -493,6 +585,8 @@ function drawTheme() {
 }
 
 renderStatic();
+renderGlossary();
+wireTerms();
 renderCharts();
 let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(renderCharts, 150); });
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", renderCharts);
