@@ -12,6 +12,21 @@ from datetime import datetime, timezone
 from . import analyst, config, db
 
 TEMPLATE = config.ROOT / "ciq" / "templates" / "dashboard.html"
+SITE_URL = "https://iropad.github.io/content-intelligence-platform"
+# Link-preview tags so LinkedIn, Slack, X etc. show docs/og-image.png when the dashboard is shared
+SOCIAL_META = (
+    '<meta property="og:type" content="website">\n'
+    '<meta property="og:title" content="Content Intelligence Platform">\n'
+    '<meta property="og:description" content="End-to-end analytics + AI for social video: SQL warehouse, LLM content tagging, '
+    'breakout prediction and a marketing mix model, with a live dashboard.">\n'
+    f'<meta property="og:url" content="{SITE_URL}/">\n'
+    f'<meta property="og:image" content="{SITE_URL}/og-image.png">\n'
+    '<meta property="og:image:width" content="1200">\n<meta property="og:image:height" content="627">\n'
+    '<meta name="twitter:card" content="summary_large_image">\n'
+    f'<meta name="twitter:image" content="{SITE_URL}/og-image.png">\n'
+    '<meta name="description" content="End-to-end analytics + AI for social video.">\n'
+)
+
 SAMPLE_QUESTIONS = [
     "Which hook works best on TikTok?",
     "Do creator collabs help?",
@@ -88,6 +103,7 @@ def main():
     config.DOCS_DIR.mkdir(exist_ok=True)
     page = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
             '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
+            + SOCIAL_META +
             '<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}'
             'body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>\n</head>\n<body>\n'
             + body + "\n</body>\n</html>\n")
